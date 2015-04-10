@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+	<channel>
+		<title> - Articles</title>
+		<description></description>
+		<link>http://embedsec.systems/zh</link>
+		<atom:link href="http://embedsec.systems/zh/feed.articles.xml" rel="self" type="application/rss+xml" />
+		
+			
+			<item>
+				<title>Misfortune Cookie (CVE-2014-9222) 解密</title>
+				
+					<description>&lt;p&gt;Misfortune Cookie 漏洞被公开了有一阵子，但在公开环境中还是没有深入分析这个漏洞技术细节的文章。那些叫做“Misfortune Cookie扫描器”如下所示，只是一个用来获取”/Allegro”路径返回字符串的简单脚本。&lt;/p&gt;
+
+</description>
+				
+				<pubDate>Mon, 16 Feb 2015 00:00:00 +0800</pubDate>
+				<link>http://embedsec.systems/zh/%E5%B5%8C%E5%85%A5%E5%BC%8F%E8%AE%BE%E5%A4%87%E5%AE%89%E5%85%A8/2015/02/16/Misfortune-Cookie-CVE-2014-9222-%E8%A7%A3%E5%AF%86.html</link>
+				<guid isPermaLink="true">http://embedsec.systems/zh/%E5%B5%8C%E5%85%A5%E5%BC%8F%E8%AE%BE%E5%A4%87%E5%AE%89%E5%85%A8/2015/02/16/Misfortune-Cookie-CVE-2014-9222-%E8%A7%A3%E5%AF%86.html</guid>
+			</item>
+			
+		
+	</channel>
+</rss>

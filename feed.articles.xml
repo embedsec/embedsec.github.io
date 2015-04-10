@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+	<channel>
+		<title> - Articles</title>
+		<description></description>
+		<link>http://embedsec.systems</link>
+		<atom:link href="http://embedsec.systems/feed.articles.xml" rel="self" type="application/rss+xml" />
+		
+			
+			<item>
+				<title>Debian GNU/Linux security checklist and hardening</title>
+				
+					<description>
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-html&quot; data-lang=&quot;html&quot;&gt;[sth0r@shawn-fortress]$ uname -a
+Linux shawn-fortress 3.7-trunk-686-pae #1 SMP Debian 3.7.2-0+kali8 i686 GNU/Linux
+|=-----------------------------------------------------------------=|
+|=-----=[ D O   N O T   F U C K   W I T H   A   H A C K E R ]=-----=|
+|=-----------------------------------------------------------------=|
+|=------------------------[ #5 File 0x02 ]-------------------------=|
+|=-----------------------------------------------------------------=|
+|=----=[ Debian GNU/Linux security checklist and hardening ]=------=|
+|=-----------------------------------------------------------------=|
+|=-------------------=[ By Shawn the R0ck   ]=---------------------=|
+|=-----------------------------------------------------------------=|
+|=-----------------------------------------------------------------=|
+|=-------------------=[ Update: Apr 8 2015 ]=----------------------=|
+|=-----------------------------------------------------------------=|&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;-- [ CONTENTS&lt;/p&gt;
+
+&lt;ol start=&quot;0&quot;&gt;
+  &lt;li&gt;About this doc  &lt;/li&gt;
+  &lt;li&gt;Security updates  &lt;/li&gt;
+      &lt;li&gt;Vulnerability Assessment&lt;br /&gt;
+      2.1 GCC mitigation&lt;br /&gt;
+      2.2 0ld sch00l *nix file auditing&lt;br /&gt;
+      2.3 GNU/Linux’s auditd&lt;br /&gt;
+      2.4 T00ls  &lt;/li&gt;
+  &lt;li&gt;Kernel security&lt;br /&gt;
+      3.1 Apparmor&lt;br /&gt;
+      3.2 SELinux&lt;br /&gt;
+      3.3 Mempo kernel&lt;br /&gt;
+      3.3.1 PaX/Grsecurity  &lt;/li&gt;
+  &lt;li&gt;SSL/TLS Checklist&lt;br /&gt;
+      4.1 Ciphersuites in Apache2/Nginx  &lt;/li&gt;
+  &lt;li&gt;PHP  &lt;/li&gt;
+  &lt;li&gt;Weirdo audit  &lt;/li&gt;
+  &lt;li&gt;Reference  &lt;/li&gt;
+&lt;/ol&gt;
+
+</description>
+				
+				<pubDate>Thu, 09 Apr 2015 00:00:00 +0800</pubDate>
+				<link>http://embedsec.systems/gnulinux-security/2015/04/09/Debian-GNU-Linux-security-checklist-and-hardening.html</link>
+				<guid isPermaLink="true">http://embedsec.systems/gnulinux-security/2015/04/09/Debian-GNU-Linux-security-checklist-and-hardening.html</guid>
+			</item>
+			
+		
+			
+			<item>
+				<title>Misfortune Cookie (CVE-2014-9222) Demystified</title>
+				
+					<description>&lt;p&gt;The misfortune cookie vulnerability has been around for a while but still lacking
+an analysis which illustrate the techinical details of the vulnerability in public.
+Those so called “misfortune cookie scanner” are just a simple script to retrieve
+the return string at path “/Allegro” as shown below,&lt;/p&gt;
+
+</description>
+				
+				<pubDate>Mon, 16 Feb 2015 00:00:00 +0800</pubDate>
+				<link>http://embedsec.systems/embedded-device-security/2015/02/16/Misfortune-Cookie-CVE-2014-9222-Demystified.html</link>
+				<guid isPermaLink="true">http://embedsec.systems/embedded-device-security/2015/02/16/Misfortune-Cookie-CVE-2014-9222-Demystified.html</guid>
+			</item>
+			
+		
+	</channel>
+</rss>
