@@ -56,6 +56,26 @@ Linux shawn-fortress 3.7-trunk-686-pae #1 SMP Debian 3.7.2-0+kali8 i686 GNU/Linu
 			</item>
 		
 			<item>
+				<title>Patching ROM-0 Bug With Misfortune Cookie</title>
+				        
+				
+					<description>&lt;p&gt;This is a paper just for fun, especially for those embedded hackers who looking
+for fun in tweaking embedded system. So, this is not the proper solution to fix
+ROM-0 bug, it is ridiculous to fix a bug with another bug. Anyway, let’s start
+our fun now. From my previous paper of “Misfortune Cookie Demystified”, it is
+clear we can perform arbitrary address overwrite with arbitrary data. Other than
+to unlock a router, it is possible to patch a router in order to fix ROM-0 bug.
+Before that, let us have a look to the data format of overwriting action being
+executed by misfortune cookie in detail. Back to the code snippet.&lt;/p&gt;
+
+</description>
+				
+				<pubDate>Tue, 03 Mar 2015 00:00:00 +0800</pubDate>
+				<link>http://embedsec.systems/embedded-device-security/2015/03/03/Patching-ROM-0-Bug-With-Misfortune-Cookie.html</link>
+				<guid isPermaLink="true">http://embedsec.systems/embedded-device-security/2015/03/03/Patching-ROM-0-Bug-With-Misfortune-Cookie.html</guid>
+			</item>
+		
+			<item>
 				<title>Misfortune Cookie (CVE-2014-9222) Demystified</title>
 				        
 				

