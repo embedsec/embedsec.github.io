@@ -7,6 +7,19 @@
 		<atom:link href="http://embedsec.systems/zh/feed.xml" rel="self" type="application/rss+xml" />
 		
 			<item>
+				<title>用Misfortune-Cookie给ROM-0 Bug打补丁</title>
+				        
+				
+					<description>&lt;p&gt;这篇文章只是为了好玩，特别是给那些喜欢调整系统的嵌入式黑客们。所以这不是一个正当的修复ROM-0 Bug的手段，好玩的是通过一个bug来修复另外一个bug。让我们开始寻找我们的乐趣。正如我一篇文章《&lt;a href=&quot;http://embedsec.systems/embedded-device-security/2015/02/16/Misfortune-Cookie-CVE-2014-9222-%E8%A7%A3%E5%AF%86.html&quot;&gt;Misfortune Cookie解密&lt;/a&gt;》所写，我们可以在任意地址写入任意数据。除了解锁路由，这也有可能在任意&lt;/p&gt;
+
+</description>
+				
+				<pubDate>Tue, 03 Mar 2015 00:00:00 +0800</pubDate>
+				<link>http://embedsec.systems/zh/embedded-device-security/2015/03/03/%E7%94%A8Misfortune-Cookie%E7%BB%99ROM-0Bug%E6%89%93%E8%A1%A5%E4%B8%81.html</link>
+				<guid isPermaLink="true">http://embedsec.systems/zh/embedded-device-security/2015/03/03/%E7%94%A8Misfortune-Cookie%E7%BB%99ROM-0Bug%E6%89%93%E8%A1%A5%E4%B8%81.html</guid>
+			</item>
+		
+			<item>
 				<title>Misfortune Cookie (CVE-2014-9222) 解密</title>
 				        
 				
