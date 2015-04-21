@@ -41,9 +41,7 @@
         </header>
 
         <section class="post-content">
-            <p>这篇文章只是为了好玩，特别是给那些喜欢调整系统的嵌入式黑客们。所以这不是一个正当的修复ROM-0 Bug的手段，好玩的是通过一个bug来修复另外一个bug。让我们开始寻找我们的乐趣。正如我一篇文章《<a href="http://embedsec.systems/embedded-device-security/2015/02/16/Misfortune-Cookie-CVE-2014-9222-%E8%A7%A3%E5%AF%86.html">Misfortune Cookie解密</a>》所写，我们可以在任意地址写入任意数据。除了解锁路由，这也有可能在任意</p>
-
-<p>This is a paper just for fun, especially for those embedded hackers who looking for fun in tweaking embedded system. So, this is not the proper solution to fix ROM-0 bug, it is ridiculous to fix a bug with another bug. Anyway, let’s start our fun now. From my previous paper of “Misfortune Cookie Demystified”, it is clear we can perform arbitrary address overwrite with arbitrary data. Other than to unlock a router, it is possible to patch a router in order to fix ROM-0 bug.Before that, let us have a look to the data format of overwriting action being executed by misfortune cookie in detail. Back to the code snippet.</p>
+            <p>这篇文章只是为了好玩，特别是给那些喜欢调整系统的嵌入式黑客们。所以这不是一个正当的修复ROM-0 Bug的手段，好玩的是通过一个bug来修复另外一个bug。让我们开始寻找我们的乐趣。正如我一篇文章《<a href="http://embedsec.systems/embedded-device-security/2015/02/16/Misfortune-Cookie-CVE-2014-9222-%E8%A7%A3%E5%AF%86.html">Misfortune Cookie解密</a>》所写，我们可以在任意地址写入任意数据。除了解锁路由，这也有可能为ROM-0 bug打上补丁。在这之前,让我们先仔细来看看misfortune  cookie bug中对数据格式的覆盖。让我们回到代码段:</p>
 
 <div class="highlight"><pre><code class="language-html" data-lang="html">ROM:8010E5B0 loc_8010E5B0:                            # CODE XREF: sub_8010E574+EC j
 ROM:8010E5B0                 li      $t7, 0x43        # 0x43=&#39;C&#39;
