@@ -8,6 +8,20 @@
 		
 			
 			<item>
+				<title>Understanding MIPS16 To MIPS32 Switching With Misfortune Cookie</title>
+				
+					<description>&lt;p&gt;TD-W8901N V2 is a new release of ADSL router to supersede the previous V1 with thefirst version of firmware being published on 3rd Nov 2014. I expect it should havesome remedies to rom-0 and misfortune cookie bugs. Let’s have a look.&lt;/p&gt;
+
+</description>
+				
+				<pubDate>Sun, 26 Apr 2015 00:00:00 +0800</pubDate>
+				<link>http://embedsec.systems/embedded-device-security/2015/04/26/Understanding-MIPS16-to-MIPS32-Switching-With-Misfortune-Cookie.html</link>
+				<guid isPermaLink="true">http://embedsec.systems/embedded-device-security/2015/04/26/Understanding-MIPS16-to-MIPS32-Switching-With-Misfortune-Cookie.html</guid>
+			</item>
+			
+		
+			
+			<item>
 				<title>Debian GNU/Linux security checklist and hardening</title>
 				
 					<description>
