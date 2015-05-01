@@ -135,7 +135,7 @@ ROM:800EDA36                 b       loc_800EDA52</code></pre></div>
 <p>其原因是以为$s1是由$v0得来,其值为sub_80130928的返回值.在Misfortune Cookie bug中,
 当没有传递任何参数时,sub_80130928函数将会返回NULL,最终会导致在地址0x00000000发生
 一个非法的写操作,其将会使系统崩溃.现在要为这个版本的固件开发一个exploit,我们需要
-知道在ROM:800EDA22中$v1的值,通过我之前文章<a href="http://embedsec.systems/zh/%E5%B5%8C%E5%85%A5%E5%BC%8F%E8%AE%BE%E5%A4%87%E5%AE%89%E5%85%A8/2015/02/16/Misfortune-Cookie-CVE-2014-9222-%E8%A7%A3%E5%AF%86.html">Misfortune Cookie (CVE-2014-9222) 解密</a>到的方法,
+知道在ROM:800EDA22中$v1的值,通过我之前<a href="http://embedsec.systems/zh/%E5%B5%8C%E5%85%A5%E5%BC%8F%E8%AE%BE%E5%A4%87%E5%AE%89%E5%85%A8/2015/02/16/Misfortune-Cookie-CVE-2014-9222-%E8%A7%A3%E5%AF%86.html">Misfortune Cookie (CVE-2014-9222) 解密</a>提到的方法,
 我们需要注入一个命令,使得$v1的值复制到$s7里.再通过使系统崩溃而在终端输出日志查看$v1的值.
 之所以选择$s7是因为,它在系统崩溃时不会被sysreset()重写.
 我们就能从中获得$v1完整的值.但在MIPS16指令集中,$s7不可用.可用的的寄存器有$s0, $s1, $v0, $v1 ,$a0, $a1, $a2, 和$a3,它们都会被sysreset()重写
