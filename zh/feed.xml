@@ -7,19 +7,6 @@
 		<atom:link href="http://embedsec.systems/zh/feed.xml" rel="self" type="application/rss+xml" />
 		
 			<item>
-				<title>通过Misfortune Cookie理解MIPS16到MIPS32的转变</title>
-				        
-				
-					<description>&lt;p&gt;TD-W8901N V2是旧型号TD-W8901N V1的替代品而且V2版第一个固件的发布日期在 2014年11月3号.我期待它对rom-0 bug和misfortune cookie bug有修复,让我们一起来看看&lt;/p&gt;
-
-</description>
-				
-				<pubDate>Sun, 26 Apr 2015 00:00:00 +0800</pubDate>
-				<link>http://embedsec.systems/zh/%E5%B5%8C%E5%85%A5%E5%BC%8F%E8%AE%BE%E5%A4%87%E5%AE%89%E5%85%A8/2015/04/26/%E9%80%9A%E8%BF%87Misfortune-Cookie%E7%90%86%E8%A7%A3MIPS16%E5%88%B0MIPS32%E7%9A%84%E8%BD%AC%E5%8F%98.html</link>
-				<guid isPermaLink="true">http://embedsec.systems/zh/%E5%B5%8C%E5%85%A5%E5%BC%8F%E8%AE%BE%E5%A4%87%E5%AE%89%E5%85%A8/2015/04/26/%E9%80%9A%E8%BF%87Misfortune-Cookie%E7%90%86%E8%A7%A3MIPS16%E5%88%B0MIPS32%E7%9A%84%E8%BD%AC%E5%8F%98.html</guid>
-			</item>
-		
-			<item>
 				<title>用Misfortune-Cookie给ROM-0 Bug打补丁</title>
 				        
 				
