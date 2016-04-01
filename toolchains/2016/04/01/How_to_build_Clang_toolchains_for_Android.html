@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+    <title>How to build Clang toolchains for Android</title>
+    <meta name="description" content="">
+
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="shortcut icon" href="/favicon.ico">
+
+    <link rel="stylesheet" type="text/css" href="/css/screen.css">
+    <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Merriweather:300,700,700italic,300italic|Open+Sans:700,400">
+
+    <link rel="canonical" href="">
+
+    <style id="fit-vids-style">.fluid-width-video-wrapper{width:100%;position:relative;padding:0;}.fluid-width-video-wrapper iframe,.fluid-width-video-wrapper object,.fluid-width-video-wrapper embed {position:absolute;top:0;left:0;width:100%;height:100%;}</style>
+</head>
+
+<body class="home-template">
+    <header class="main-header post-head no-cover">
+    <nav class="main-nav clearfix">
+        <a class="back-button icon-arrow-left" href="http://embedsec.systems">Home</a>
+        
+    </nav>
+</header>
+
+    <main class="content" role="main">
+    <article class="post">
+
+        <header class="post-header">
+            <h1 class="post-title">How to build Clang toolchains for Android</h1>
+            <section class="post-meta">
+                <a>zet</a>
+                <time class="post-date" datetime="2016-04-01">01 April 2016</time>
+                <a href="mailto:feqin1023@gmail.com">feqin1023@gmail.com</a>
+            </section>
+        </header>
+
+        <section class="post-content">
+            <p>by zet</p>
+
+<h1 id="build-the-clang-toolchains-for-android">Build the Clang Toolchains for Android</h1>
+
+<p>The following process is used to build the Clang that is used by both the
+Android platfrom and the NDK. And this process is done in the AOSP tree.</p>
+
+<p>Both GNU/Linux and Windows toolchains are built on GNU/Linux machines. Windows host
+binaries are built with mingw.</p>
+
+<p>My developing environment is <strong>Linux Mint 17.3</strong></p>
+
+<hr />
+
+<h2 id="source-versions-in-aosp">Source versions in AOSP</h2>
+
+<ul>
+  <li>Create the work directory</li>
+</ul>
+
+<p><code>bash
+  mkdir working_directory
+  TOOLCHAINS_BUILD_TOP=work_direcory # optional, only for clear description
+									                   # below
+  export TOOLCHAINS_BUILD_TOP
+  cd work_directory				           # build will be done in this directory
+</code></p>
+
+<p>There are two versions Clang/LLVM code tree in AOSP, the first is:
+aosp/platform/external/(clang|llvm), and the second is:
+aosp/toolchain/(clang|llvm). </p>
+
+<p>Something most important is:</p>
+
+<h4 id="personal-communication-from-stephen-hines--google">Personal Communication from Stephen Hines @ google</h4>
+<blockquote>
+  <p>the first tree is a dead-end. That was a prior forked version of Clang/LLVM
+was previously used for the NDK conpiler (but not for the AOSP platform
+compiler). We have since condensed down to use the same conpiler for the
+NDK as is used by the platform (AOSP).</p>
+</blockquote>
+
+<p>So, the first tree(toolchain/clang) is a dead one. But if you are very curious
+about what had the googelers done to the toolchain/(clang|llvm), you can clone
+the source code.</p>
+
+<p><code>bash
+  # ustc source is available too
+  git clone https://aosp.tuna.tsinghua.edu.cn/toolchain/clang
+  git clone https://aosp.tuna.tsinghua.edu.cn/toolchain/llvm
+  git branch -a
+  git branch release_36   # Only doing a checkout, can see the source code
+</code></p>
+
+<p>Now, we have the source code of NDK compiler, download the Clang/LLVM-3.6
+official source, and compare the two project(NDK version and official version),
+you will see there is little differece between them. NDK Clang version added
+some class to support new ABI(e.g. NDK64ABI) and new Target(e.g. 
+Android64Target), that’s all.</p>
+
+<h2 id="prerequisites">Prerequisites</h2>
+
+<ul>
+  <li>
+    <p>get and config the <em>repo</em></p>
+
+    <p><code>bash
+mkdir ~/bin
+PATH=~/bin:$PATH
+curl https://storage.googleapis.com/git-repo-downloads/repo &gt; ~/bin/repo
+chmod a+x ~/bin/repo
+</code></p>
+  </li>
+  <li>
+    <p>checkout the <code>clang</code></p>
+
+    <p>We have three source repository that repo can get the source code in The
+following section, The last one is google official source had fucked by GFW.
+Only execute <strong>one</strong> of the three repo init below.</p>
+
+    <p><code>bash
+repo init -u git://mirrors.ustc.edu.cn/aosp/platform/manifest -b llvm
+repo init -u https://aosp.tuna.tsinghua.edu.cn/platform/manifest -b llvm
+repo init -u https://android.googlesource.com/platform/manifest -b llvm  
+</code></p>
+
+    <p><code>bash
+repo sync  # get the toolchain source
+</code></p>
+
+    <ul>
+      <li>
+        <p>Some description about repo</p>
+
+        <ul>
+          <li>The souce code of toolchain should be get by repo, repo is designed for
+manage the complex dependencies of sub-project of AOSP, implementated by a
+set of Python scripts. repo wraps some git plumbing, and according to a 
+config file locate at $TOOLCHAINS_BUILD_TOP/.repo/manifests/default.xml to
+deal with the dependency and repository locations of sub-project of every
+topic(which is a set of git branchs). $TOOLCHAINS_BUILD_TOP/.repo/manifests
+is a local git respository contains versions of config file. According to
+this, we have a new way get topic(for example, after we get clang/llvm,
+we want gcc now). </li>
+        </ul>
+
+        <p><code>bash
+  cd $TOOLCHAINS_BUILD_TOP/.repo/manifests
+  git branch -a 	  # list of all the topic,
+                              # e,g. : remotes/origin/gcc, the topic of gcc
+  git checkout gcc  # the config file : default.xml is for gcc NOW
+  repo sync			    # get the gcc source
+</code></p>
+
+        <p>Follow the analysis, we may get a successfull compiled Clang/LLVM topic
+according to the config file(default.xml), but there is another magic
+piece: the relationship of every sub-project in local of a successfull
+Clang/LLVM topic is <strong>not</strong> identical with the repository of same name of
+AOSP. So, recommending for repo.</p>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>additional java dependencies</p>
+
+    <p>There is request about java environment in line 200+ at
+$TOOLCHAINS_BUILD_TOP/build/core/main.mk : at least OpenJDK1.8.</p>
+
+    <p><code>bash
+sudo add-apt-repository ppa:openjdk-r/ppa # add PPA
+sudo apt-get update 
+sudo apt-get install openjdk-8-jdk
+sudo update-alternatives --config java    # config the default java
+sudo update-alternatives --config javac   # config the default javac
+</code></p>
+  </li>
+</ul>
+
+<h2 id="generating">generating</h2>
+
+<p>Run this build script, there is a two stage build. and the second stage will
+  use the binary generated by the first stage. in other word, the last deliver
+  binary is generated by itself.</p>
+
+<p><code>bash
+  python external/clang/build.py
+ </code></p>
+
+<h2 id="check">check</h2>
+
+<p><code>bash
+  cd $TOP_SOURCE/external/llvm
+  ./android_test.sh
+ </code></p>
+
+
+        </section>
+    </article>
+</main>
+
+    <footer class="site-footer clearfix">
+        <section class="copyright"><a href="https://github.com/TryGhost/Casper">Ghost Foundation</a> © 2015 <a class="icon-twitter" href="https://twitter.com/embedsec"></a> <a class="icon-feed" href="http://embedsec.systems/feed.xml"></a></section>
+</footer>
+
+    <script src="/js/jquery.min.js"></script>
+<script type="text/javascript" src="/js/jquery.fitvids.js"></script>
+<script type="text/javascript" src="/js/index.js"></script>
+
+</body>
+</html>
