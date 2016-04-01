@@ -7,6 +7,19 @@
 		<atom:link href="http://embedsec.systems/feed.xml" rel="self" type="application/rss+xml" />
 		
 			<item>
+				<title>(A/T/KT) - Sanitized GNU/Linux: a new way of bug hunter in FLOSS Community</title>
+				        
+				
+					<description>&lt;p&gt;Most of Gentoo installation STEPS in this article are &lt;strong&gt;COPY&lt;/strong&gt;   from &lt;a href=&quot;https://wiki.gentoo.org/wiki/Handbook:AMD64&quot;&gt;Gentoo Handbook&lt;/a&gt;[1]&lt;/p&gt;
+
+</description>
+				
+				<pubDate>Fri, 01 Apr 2016 19:35:05 +0800</pubDate>
+				<link>http://embedsec.systems/gnulinux-security/2016/04/01/A-T-KA-Sanitized-GNU-Linux-a-new-way-of-bug-hunter-in-FLOSS-Community.html</link>
+				<guid isPermaLink="true">http://embedsec.systems/gnulinux-security/2016/04/01/A-T-KA-Sanitized-GNU-Linux-a-new-way-of-bug-hunter-in-FLOSS-Community.html</guid>
+			</item>
+		
+			<item>
 				<title>How to build Clang toolchains for Android</title>
 				        
 				

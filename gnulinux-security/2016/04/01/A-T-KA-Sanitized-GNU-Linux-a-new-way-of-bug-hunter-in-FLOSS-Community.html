@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+    <title>(A/T/KT) - Sanitized GNU/Linux: a new way of bug hunter in FLOSS Community</title>
+    <meta name="description" content="">
+
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="shortcut icon" href="/favicon.ico">
+
+    <link rel="stylesheet" type="text/css" href="/css/screen.css">
+    <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Merriweather:300,700,700italic,300italic|Open+Sans:700,400">
+
+    <link rel="canonical" href="">
+
+    <style id="fit-vids-style">.fluid-width-video-wrapper{width:100%;position:relative;padding:0;}.fluid-width-video-wrapper iframe,.fluid-width-video-wrapper object,.fluid-width-video-wrapper embed {position:absolute;top:0;left:0;width:100%;height:100%;}</style>
+</head>
+
+<body class="home-template">
+    <header class="main-header post-head no-cover">
+    <nav class="main-nav clearfix">
+        <a class="back-button icon-arrow-left" href="http://embedsec.systems">Home</a>
+        
+    </nav>
+</header>
+
+    <main class="content" role="main">
+    <article class="post">
+
+        <header class="post-header">
+            <h1 class="post-title">(A/T/KT) - Sanitized GNU/Linux: a new way of bug hunter in FLOSS Community</h1>
+            <section class="post-meta">
+                <a>Shawn and one anonymous menber in Evil-Labs</a>
+                <time class="post-date" datetime="2016-04-01">01 April 2016</time>
+                <a href="mailto:citypw@gmail.com">citypw@gmail.com</a>
+            </section>
+        </header>
+
+        <section class="post-content">
+            <p>Most of Gentoo installation STEPS in this article are <strong>COPY</strong>   from <a href="https://wiki.gentoo.org/wiki/Handbook:AMD64">Gentoo Handbook</a>[1]</p>
+
+<p>Use links show as below to download gentoo LiveCD: <br />
+Current-install-iso: <br />
+<a href="http://distfiles.gentoo.org/releases/amd64/autobuilds/current-install-amd64-minimal/">http://distfiles.gentoo.org/releases/amd64/autobuilds/current-install-amd64-minimal</a> <br />
+After booing into liveCD, we can start to prepare for install system.</p>
+
+<p><strong>Creating the partitions(GPT)：</strong></p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">parted -a optimal /dev/sda</code></pre></div>
+
+<p>Use parted to configure <em>sda</em></p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">(parted)mklabel gpt</code></pre></div>
+
+<p>Setting the GPT label</p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">(parted)unit mib
+(parted)mkpart primary 1 3
+(parted)name 1 grub
+(parted)set 1 bios_grub on</code></pre></div>
+
+<p>Creating a partition start from 1MB and end at 3MB used by GRUB2BOOTLOADER</p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">(parted) mkpart primary 3 131
+(parted) name 2 boot</code></pre></div>
+
+<p>Creating BOOT partition (128MB)</p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">(parted) mkpart primary 131 1024
+(parted) name 3 swap</code></pre></div>
+
+<p>Creating swap partition</p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">(parted) mkpart primary 1024 -1
+(parted) name 4 rootfs</code></pre></div>
+
+<p>Creating remaining disk as ROOTFS</p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">(parted) set 2 boot on
+(parted) quit</code></pre></div>
+
+<p><strong>Creating the partitions(MBR):</strong></p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">livecd ~ # fdisk -t dos /dev/sda
+
+Welcome to fdisk (util-linux 2.26.2).
+Changes will remain in memory only, until you decide to write them.
+Be careful before using the write command.
+
+
+Command (m for help): n
+Partition type
+   p   primary (0 primary, 0 extended, 4 free)
+   e   extended (container for logical partitions)
+Select (default p): p
+Partition number (1-4, default 1): 1
+First sector (2048-104857599, default 2048): 2048
+Last sector, +sectors or +size{K,M,G,T,P} (2048-104857599, default 104857599):
++2M
+
+Created a new partition 1 of type &#39;Linux&#39; and of size 2 MiB.
+
+Command (m for help): n
+Partition type
+   p   primary (1 primary, 0 extended, 3 free)
+   e   extended (container for logical partitions)
+Select (default p): p
+Partition number (2-4, default 2): 2
+First sector (6144-104857599, default 6144): 
+Last sector, +sectors or +size{K,M,G,T,P} (6144-104857599, default 104857599):
++128M
+
+Created a new partition 2 of type &#39;Linux&#39; and of size 128 MiB.
+
+Command (m for help): p
+Disk /dev/sda: 50 GiB, 53687091200 bytes, 104857600 sectors
+Units: sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+Disklabel type: dos
+Disk identifier: 0xcc7ca523
+
+Device     Boot Start    End Sectors  Size Id Type
+/dev/sda1        2048   6143    4096    2M 83 Linux
+/dev/sda2        6144 268287  262144  128M 83 Linux
+
+Command (m for help): a
+Partition number (1,2, default 2): 2
+
+The bootable flag on partition 2 is enabled now.
+
+Command (m for help): p
+Disk /dev/sda: 50 GiB, 53687091200 bytes, 104857600 sectors
+Units: sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+Disklabel type: dos
+Disk identifier: 0xcc7ca523
+
+Device     Boot Start    End Sectors  Size Id Type
+/dev/sda1        2048   6143    4096    2M 83 Linux
+/dev/sda2  *     6144 268287  262144  128M 83 Linux
+
+Command (m for help): n
+Partition type
+   p   primary (2 primary, 0 extended, 2 free)
+   e   extended (container for logical partitions)
+Select (default p): p
+Partition number (3,4, default 3): 
+First sector (268288-104857599, default 268288):       
+Last sector, +sectors or +size{K,M,G,T,P} (268288-104857599, default
+104857599): +1024M
+
+Created a new partition 3 of type &#39;Linux&#39; and of size 1 GiB.
+
+Command (m for help): t
+Partition number (1-3, default 3):3
+Partition type (type L to list all types):82
+
+Command (m for help): n
+Partition type
+   p   primary (3 primary, 0 extended, 1 free)
+   e   extended (container for logical partitions)
+Select (default e): p
+
+Changed type of partition &#39;Linux&#39; to &#39;Linux swap / Solaris&#39;.
+
+Selected partition 4
+First sector (2365440-104857599, default 2365440): 
+Last sector, +sectors or +size{K,M,G,T,P} (2365440-104857599, default
+104857599): 
+
+Created a new partition 4 of type &#39;Linux&#39; and of size 48.9 GiB.
+
+Command (m for help): w
+The partition table has been altered.
+Calling ioctl() to re-read partition table.
+Syncing disks.</code></pre></div>
+
+<p><strong>Creating file systems：</strong></p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">mkfs.ext2 /dev/sda2
+mkfs.ext4 /dev/sda4</code></pre></div>
+
+<p>Formatting <strong>sda2</strong> and <strong>sda4</strong> in ext2 and ext4</p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">mkswap /dev/sda3</code></pre></div>
+
+<p>Formatting <strong>sda3</strong> as swap partition</p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">swapon /dev/sda3</code></pre></div>
+
+<p><strong>Mounting:</strong>   </p>
+
+<p>After all Creating partition and formatting, now we can mount those partitions. Be aware of mounting partition we should creating a directories first.</p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">mount /dev/sda4 /mnt/gentoo/
+mkdir /mnt/gentoo/boot
+mount /dev/sda2 /mnt/gentoo/boot</code></pre></div>
+
+<p><strong>Installing Stage3:</strong></p>
+
+<p>We cloud use <strong>links</strong> to download a stage tarball by surf to the gentoo mirror list. </p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">links https://www.gentoo.org/downloads/mirrors</code></pre></div>
+
+<p>Chosing a proper(close by) mirror and enter the <strong>releases/amd64/autobuilds/current-stage3-amd64/</strong> directory.</p>
+
+<p>Chose <strong>stage3-amd64-&lt;releases&gt;.tar.bz2</strong>/<strong>stage3-amd64-&lt;releases&gt;.tar.bz2.DIGESTS</strong>/<strong>stage3-amd64-&lt;releases&gt;.tar.bz2.DIGESTS.asc</strong> to download</p>
+
+<blockquote>
+  <p>.CONTENTS file that contains a list of all files inside the stage tarball   </p>
+
+  <p>.DIGESTS file that contains checksums of the stage file, in different algorithms   </p>
+
+  <p>.DIGESTS.asc file that, like the .DIGESTS file, contains checksums of the stage file in different algorithms, but is also cryptographically signed to ensure it is provided by the Gentoo project</p>
+
+  <p>—— from Gentoo Handbook</p>
+</blockquote>
+
+<p><strong>Validate Checksum：</strong></p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">cat stage3-amd64-<span class="nt">&lt;releases&gt;</span>.tar.bz2.DIGESTS</code></pre></div>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">openssl dgst -r -sha512 stage3-amd64-<span class="nt">&lt;releases&gt;</span>.tar.bz2
+openssl dgst -r -whirlpool stage3-amd64-<span class="nt">&lt;release&gt;</span>.tar.bz2</code></pre></div>
+
+<p>Compare the output of these commands with the value registered in the .DIGESTS(.asc) files. The values need to match, otherwise the downloaded file might be corrupt (or the digests file is).   </p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">gpg --keyserver hkps.pool.sks-keyservers.net --recv-keys 0xBB572E0E2D182910
+#From https://www.gentoo.org/downloads/signatures/
+gpg --verify stage3-amd64-<span class="nt">&lt;release&gt;</span>.tar.bz2.DIGESTS.asc</code></pre></div>
+
+<p>Using gpg to make sure the checksums have not been tampered with.</p>
+
+<p><strong>Unpacking the stage tarball</strong>   </p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">tar xvjpf stage3-<span class="nt">&lt;release&gt;</span>.tar.bz2 --xattrs</code></pre></div>
+
+<p><strong>Configuring compile options</strong>:</p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">vi /mnt/gentoo/etc/portage/make.conf</code></pre></div>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">CFLAGS=&quot;-march=native -O2 -pipe&quot;
+MAKEOPTS=&quot;-j8&quot; #Depends on your Processor</code></pre></div>
+
+<p><strong>CFLAGS and CXXFLAGS</strong>   </p>
+
+<blockquote>
+  <p>The CFLAGS and CXXFLAGS variables define the optimization flags for the GCC C and C++ compiler respectively. Although those are defined generally here, for maximum performance one would need to optimize these flags for each program separately. The reason for this is because every program is different. However, this is not manageable, hence the definition of these flags in the make.conf file.</p>
+
+  <p>In make.conf one should define the optimization flags that will make the system the most responsive generally. Don’t place experimental settings in this variable; too much optimization can make programs behave bad (crash, or even worse, malfunction).</p>
+
+  <p>—— from Gentoo Handbook   </p>
+</blockquote>
+
+<p><strong>Chosing proper mirror</strong></p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">mirrorselect -i -o &gt;&gt; /mnt/gentoo/etc/portage/make.conf
+mkdir /mnt/gentoo/etc/portage/repos.conf
+cp /mnt/gentoo/usr/share/portage/config/repos.conf /mnt/gentoo/etc/portage/repos.conf/gentoo.conf
+vi /mnt/gentoo/etc/portage/repos.conf/gentoo.conf</code></pre></div>
+
+<p>cat gentoo.conf</p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">[gentoo]
+location = /usr/portage
+sync-type = rsync
+sync-uri = rsync://rsync.gentoo.org/gentoo-portage
+auto-sync = yes</code></pre></div>
+
+<p><strong>Copy Nameserver info:</strong>    </p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">cp -L /etc/resolv.conf /mnt/gentoo/etc/</code></pre></div>
+
+<p><strong>Mounting the necessary filesystems</strong></p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">mount -t proc proc /mnt/gentoo/proc
+mount --rbind /sys /mnt/gentoo/sys
+mount --make-rslave /mnt/gentoo/sys
+mount --rbind /dev /mnt/gentoo/dev
+mount --make-rslave /mnt/gentoo/dev</code></pre></div>
+
+<p><strong>Entering the chroot environment</strong></p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">chroot /mnt/gentoo /bin/bash
+source /etc/profile
+export PS1=&quot;(chroot) $PS1&quot;</code></pre></div>
+
+<p><strong>Update</strong></p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">emerge-webrsync</code></pre></div>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">(chroot) livecd / # eselect profile list
+Available profile symlink targets:
+  [1]   default/linux/amd64/13.0 *
+  [2]   default/linux/amd64/13.0/selinux
+  [3]   default/linux/amd64/13.0/desktop
+  [4]   default/linux/amd64/13.0/desktop/gnome
+  [5]   default/linux/amd64/13.0/desktop/gnome/systemd
+  [6]   default/linux/amd64/13.0/desktop/kde
+  [7]   default/linux/amd64/13.0/desktop/kde/systemd
+  [8]   default/linux/amd64/13.0/desktop/plasma
+  [9]   default/linux/amd64/13.0/desktop/plasma/systemd
+  [10]  default/linux/amd64/13.0/developer
+  [11]  default/linux/amd64/13.0/no-multilib
+  [12]  default/linux/amd64/13.0/systemd
+  [13]  default/linux/amd64/13.0/x32
+  [14]  hardened/linux/amd64
+  [15]  hardened/linux/amd64/selinux
+  [16]  hardened/linux/amd64/no-multilib
+  [17]  hardened/linux/amd64/no-multilib/selinux
+  [18]  hardened/linux/amd64/x32
+  [19]  hardened/linux/musl/amd64
+  [20]  hardened/linux/musl/amd64/x32
+  [21]  default/linux/uclibc/amd64
+  [22]  hardened/linux/uclibc/amd64
+(chroot) livecd / # eselect profile set 12</code></pre></div>
+
+<p><strong>Configuring Timezone</strong></p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">echo &quot;Asia/Shanghai&quot; &gt; /etc/timezone
+emerge --config sys-libs/timezone-data</code></pre></div>
+
+<p><strong>Install gcc-5.3</strong></p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">emerge -av =gcc-5.3.0
+
+The following keyword changes are necessary to proceed:
+ (see &quot;package.accept_keywords&quot; in the portage(5) man page for more details)
+# required by =gcc-5.3.0 (argument)
+=sys-devel/gcc-5.3.0 ~amd64
+
+Would you like to add these changes to your config files? [Yes/No]</code></pre></div>
+
+<p>Update Configuration file</p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">dispatch-conf</code></pre></div>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">--- /tmp/tmpjosdvwsz/0  2016-03-29 05:44:01.780036771 +0000
++++ /etc/portage/._cfg0000_package.accept_keywords      2016-03-29
+05:43:15.840036346 +0000
+@@ -1 +1,2 @@
+-/dev/null
++# required by =gcc-5.3.0 (argument)
++=sys-devel/gcc-5.3.0 ~amd64
+
+&gt;&gt; (1 of 1) -- /etc/portage/package.accept_keywords
+&gt;&gt; q quit, h help, n next, e edit-new, z zap-new, u use-new
+   m merge, t toggle-merge, l look-merge:</code></pre></div>
+
+<p>Run again</p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">emerge -av =gcc-5.3.0</code></pre></div>
+
+<p>Change GCC default version</p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">(chroot) livecd / # gcc-config -l
+ [1] x86_64-pc-linux-gnu-4.9.3 *
+ [2] x86_64-pc-linux-gnu-5.3.0
+(chroot) livecd / # gcc-config 2</code></pre></div>
+
+<p><strong>Install Kernel</strong></p>
+
+<p>Download kernel source</p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">emerge -av sys-kernel/gentoo-sources</code></pre></div>
+
+<p>Checking Kernel Version</p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">(chroot) livecd linux # eselect kernel list
+Available kernel symlink targets:
+  [1]   linux-4.1.15-gentoo-r1 *</code></pre></div>
+
+<p>Configuring Kernel Options</p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">cd /usr/src/linux
+make menuconfig</code></pre></div>
+
+<p>Enable KASan</p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">[*] KASan: runtime memory debugger 
+    Instrumentation type (Inline instrumentation)  ---&gt;
+        ( ) Outline instrumentation
+        (X) Inline instrumentation #This options required GCC 5.0+
+
+<span class="err">&lt;</span>*&gt;   Intel ESB, ICH, PIIX3, PIIX4 PATA/SATA support 
+
+[*]   Fusion MPT logging facility
+       <span class="err">&lt;</span>*&gt;   Fusion MPT ScsiHost drivers for SPI  
+       <span class="err">&lt;</span>*&gt;   Fusion MPT ScsiHost drivers for SAS  
+       (128) Maximum number of scatter gather entries (16 - 128)
+       <span class="err">&lt;</span>*&gt;   Fusion MPT misc device (ioctl) driver  
+       [*]   Fusion MPT logging facility</code></pre></div>
+
+<p>Compiling kernel</p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">make -j9 <span class="err">&amp;&amp;</span> make modules_install <span class="err">&amp;&amp;</span>make install</code></pre></div>
+
+<p>Generating initramfs</p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">emerge -av genkernel
+genkernel initramfs</code></pre></div>
+
+<p>Install Firmware</p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">emerge --ask sys-kernel/linux-firmware</code></pre></div>
+
+<p><strong>Configure fstab</strong></p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html"># NOTE: If your BOOT partition is ReiserFS, add the notail option to opts.
+/dev/sda2               /boot           ext2            noauto,noatime  0 2
+/dev/sda4               /               ext4            noatime         0 1
+/dev/sda3               none            swap            sw              0 0
+/dev/cdrom              /mnt/cdrom      auto            noauto,ro       0 0
+/dev/fd0                /mnt/floppy     auto            noauto          0 0</code></pre></div>
+
+<p><strong>Configure Network:</strong></p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">emerge net-misc/netifrc dhcp dhcpd
+
+vim /etc/conf.d/net
+###
+config_eth0=&quot;dhcp&quot;
+###</code></pre></div>
+
+<p>Automatically start networking at boot</p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">cd /etc/init.d
+ln -s net.lo net.eth0
+rc-update add net.eth0 default</code></pre></div>
+
+<p><strong>Update SYSTEM</strong></p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">emerge -avuDN @world</code></pre></div>
+
+<p><strong>Setting root password</strong></p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">passwd root</code></pre></div>
+
+<p><strong>Install BOOTLOADER</strong></p>
+
+<p>In this section, I going to use GRUB2 as my bootloader</p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">emerge -av grub
+grub2-install /dev/sda
+vim /etc/default/grub
+######################add line show as below.
+GRUB_CMDLINE_LINUX=&quot;rootfstype=ext4 init=/usr/lib/systemd/systemd&quot;
+######################
+grub2-mkconfig -o /boot/grub/grub.cfg</code></pre></div>
+
+<p><strong>Exiting chroot environment</strong> </p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">exit</code></pre></div>
+
+<h1 id="reboot">reboot</h1>
+
+<p>After reboot, we could simply use dhcp automatically connect to Internet</p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">dhclient</code></pre></div>
+
+<p>Adding address sanitizer FLAGS into <strong>/etc/portage/make.conf</strong></p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">CFLAGS=&quot;-march=native  -O2 -pipe -fsanitize=address&quot;
+CXXFLAGS=&quot;-march=native  -O2 -pipe -fsanitize=address&quot;</code></pre></div>
+
+<p>Clear global variable to avoid <strong>configure</strong> error</p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">export LIBS=
+export CFLAGS=
+export CXXFLAGS=</code></pre></div>
+
+<p>rebuild whole system (exclude gcc and glibc)</p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">emerge -e world --exclude=gcc --exclude=glibc</code></pre></div>
+
+
+        </section>
+    </article>
+</main>
+
+    <footer class="site-footer clearfix">
+        <section class="copyright"><a href="https://github.com/TryGhost/Casper">Ghost Foundation</a> © 2015 <a class="icon-twitter" href="https://twitter.com/embedsec"></a> <a class="icon-feed" href="http://embedsec.systems/feed.xml"></a></section>
+</footer>
+
+    <script src="/js/jquery.min.js"></script>
+<script type="text/javascript" src="/js/jquery.fitvids.js"></script>
+<script type="text/javascript" src="/js/index.js"></script>
+
+</body>
+</html>
