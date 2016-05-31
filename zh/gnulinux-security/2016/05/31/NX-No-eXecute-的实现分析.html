@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+    <title>NX(No-eXecute)的实现分析</title>
+    <meta name="description" content="">
+
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="shortcut icon" href="/favicon.ico">
+
+    <link rel="stylesheet" type="text/css" href="/css/screen.css">
+    <link rel="stylesheet" type="text/css" href="//fonts.useso.com/css?family=Merriweather:300,700,700italic,300italic|Open+Sans:700,400">
+
+    <link rel="canonical" href="">
+
+    <style id="fit-vids-style">.fluid-width-video-wrapper{width:100%;position:relative;padding:0;}.fluid-width-video-wrapper iframe,.fluid-width-video-wrapper object,.fluid-width-video-wrapper embed {position:absolute;top:0;left:0;width:100%;height:100%;}</style>
+</head>
+
+<body class="home-template">
+    <header class="main-header post-head no-cover">
+    <nav class="main-nav clearfix">
+        <a class="back-button icon-arrow-left" href="http://embedsec.systems/zh">Home</a>
+        
+    </nav>
+</header>
+
+    <main class="content" role="main">
+    <article class="post">
+
+        <header class="post-header">
+            <h1 class="post-title">NX(No-eXecute)的实现分析</h1>
+            <section class="post-meta">
+                <a>zet</a>
+                <time class="post-date" datetime="2016-05-31">31 May 2016</time>
+                <a href="mailto:zet@tya.email">zet@tya.email</a>
+            </section>
+        </header>
+
+        <section class="post-content">
+            <h1 id="nxno-execute">NX(No-eXecute)的实现分析</h1>
+
+<p>@(mitigation)[NX|gcc|binutils|kernel]
+以下的代码分析仅限<strong>linux kernel/gcc/GNU binutils-as/GNU binutils-ld/ELF</strong>.</p>
+
+<p>在计算机安全领域一个很经典的话题就是缓冲区溢出(Buffer Overflow).缓冲区溢出一般时
+候伴随着攻击者的篡改堆栈里保存的返回地址,然后执行注入到stack中的shellcode,攻击者
+可以发挥想象力仔细编写shellcode进行下一步的攻击,直到完全控制了计算机.这种攻击之
+所以能够成功主要原因就是因为stack里的shellcode的可执行.所以主要的防御手段
+(mitigation)就是禁止stack里数据的执行(noexecstack).</p>
+
+<p>Noexecstack的实现主要出现在两个地方: compiler-assembler-linker(这里表示一个生成
+binary的过程: 编译-&gt;汇编-&gt;链接器)里和kernel里.在compiler-assembler-linker里的实
+现基本上的纯粹的软件实现,结果是在elf的一个stack的section里置位不可以执行.但是捕
+获违反stack不可执行这个问题是在kernel里.</p>
+
+<p>在kernel里的实现,随着处理器在(页模式)paging处理过程中涉及到功能寄存器中引入
+No-eXecute的配置位,所以实际上kernel在实现NX的时候是在相关的寄存器里置NX的位,在
+CPU操作的时候由硬件来做是否可以执行的检查.</p>
+
+<p>本文的描述描述顺序是先描述NX在gcc/binutils里的实现,然后再描述在kernel里的实现.</p>
+
+<p><small><em>本文的分析对应的<strong>gcc</strong>版本是6.1.0,<strong>binutils</strong>版本是2.26,
+<strong>linux kernel</strong>的版本是4.6</em></small></p>
+
+<hr />
+
+<p>[TOC]</p>
+
+<h2 id="nxgccbinutils">NX在gcc/binutils里面的实现</h2>
+
+<p>在gcc/ld里面有NX相关的选择,gcc/ld都是-z execstack/noexecstack,在gcc 6.1 manual里
+跟-z相关的内容如下:</p>
+
+<blockquote>
+  <p>3.14 Options for Linking:
+-z keyword
+-z is passed directly on to the linker along with the keyword keyword. See the 
+section in the documentation of your linker for permitted values and their 
+meanings.
+–<a href="https://gcc.gnu.org/onlinedocs/gcc-6.1.0/gcc/Link-Options.html#Link-Options">gcc 6.1 manual</a></p>
+</blockquote>
+
+<p>也就是说gcc将参数-z execstack/noexecstack直接传给了ld(linker).</p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">gcc -### -z execstack test.c</code></pre></div>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">Using built-in specs.
+COLLECT_GCC=gcc
+COLLECT_LTO_WRAPPER=/usr/lib/gcc/x86_64-linux-gnu/4.8/lto-wrapper
+Target: x86_64-linux-gnu
+ /usr/lib/gcc/x86_64-linux-gnu/4.8/cc1 -quiet -imultiarch x86_64-linux-gnu 
+test.c -quiet -dumpbase test.c &quot;-mtune=generic&quot; &quot;-march=x86-64&quot; -auxbase test 
+-fstack-protector -Wformat -Wformat-security -o /tmp/ccgX6EXC.s
+
+ // 调用as
+ as --64 -o /tmp/ccVl7H5u.o /tmp/ccgX6EXC.s
+
+ // 调用collect2
+ /usr/lib/gcc/x86_64-linux-gnu/4.8/collect2 &quot;--sysroot=/&quot; --build-id 
+--eh-frame-hdr -m elf_x86_64 &quot;--hash-style=gnu&quot; --as-needed -dynamic-linker 
+/lib64/ld-linux-x86-64.so.2 -z relro 
+// 传入的参数
+-z execstack 
+/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu/crt1.o 
+/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu/crti.o 
+/usr/lib/gcc/x86_64-linux-gnu/4.8/crtbegin.o -L/usr/lib/gcc/x86_64-linux-gnu/4.8
+ -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu 
+-L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../lib -L/lib/x86_64-linux-gnu 
+-L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib 
+-L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../.. /tmp/ccVl7H5u.o -lgcc --as-needed
+-lgcc_s --no-as-needed -lc -lgcc --as-needed -lgcc_s --no-as-needed 
+/usr/lib/gcc/x86_64-linux-gnu/4.8/crtend.o 
+/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu/crtn.o</code></pre></div>
+
+<p>接下来将会详细描述gcc将-z execstack这一参数怎样传给ld(linker)以及这一参数对生成
+的ELF文件产生怎样的影响,最后将会分析这样的影响是如何导致stack被执行在kernel里捕
+获的.</p>
+
+<h3 id="nxgcc">NX在gcc里的处理</h3>
+
+<p>由上面的<strong>gcc -###</strong>输出可知道<strong>gcc</strong>只是一个外壳管理程序,严格来说是一个
+<strong>driver</strong>,根据传入的参数来控制各个<strong>compile/assemble/link</strong>过程.在<strong>gcc</strong>实现里
+<strong>compile</strong>过程由<strong>cc1</strong>来完成,<strong>assemble</strong>由<strong>GNU as</strong>完成,<strong>link</strong>由
+<strong>GNU ld</strong>来完成(GNU社区里有一个备选的链接器:<em>gold</em>).</p>
+
+<p>当<strong>gcc</strong>遇到<strong>-z execstack</strong>这样的选项时的处理代码如下:</p>
+
+<p><small><em>在我的机器上gcc的目录是$HOME/github/gcc</em></small></p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">export $SRC=$HOME/github/gcc</code></pre></div>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">// $SRC/gcc/gcc-main.c
+// gcc driver的入口代码
+int
+main (int argc, char **argv)
+{
+  driver d (false, /* can_finalize */
+	    false); /* debug */
+
+  return d.main (argc, argv);
+}
+
+// src/gcc/gcc.c
+/* driver::main is implemented as a series of driver:: method calls.  */
+int
+driver::main (int argc, char **argv)
+{
+  bool early_exit;
+	
+  set_progname (argv[0]);  // 对调用gcc时指定的名字做处理,删掉前面的目录名,不需
+  要过多研究expand_at_files (<span class="err">&amp;</span>argc, <span class="ni">&amp;argv);</span> // 对参数做一些扩展处理
+  decode_argv (argc, const_cast <span class="nt">&lt;const</span> <span class="na">char</span> <span class="err">**</span><span class="nt">&gt;</span> (argv)); // 下面分析
+  // 下面的这些函数都是在做gcc的常规处理,跟本文主题关系不大
+  global_initializations ();
+  build_multilib_strings ();
+  set_up_specs ();
+  putenv_COLLECT_GCC (argv[0]);
+  maybe_putenv_COLLECT_LTO_WRAPPER ();
+  maybe_putenv_OFFLOAD_TARGETS ();
+  handle_unrecognized_options ();
+
+  if (!maybe_print_and_exit ())
+    return 0;
+
+  early_exit = prepare_infiles ();
+  if (early_exit)
+    return get_exit_code ();
+  
+  do_spec_on_infiles (); // 这里会调用cc1和as
+  maybe_run_linker (argv[0]); // 这里会调用ld
+  final_actions ();
+  return get_exit_code ();
+}</code></pre></div>
+
+<p>由上面的代码注释可知,我们需要研究3个main入口里的函数,下面依次进行分析.由于代码过
+多,下面的分析会删掉跟本文主题无关的代码,函数调用关系由<strong>-&gt;</strong>表示.如果不做申明,源
+代码位于<em>src/gcc/gcc.c</em>这个文件里.</p>
+
+<p>在分析之前需要说清楚另外一个问题,那就是<strong>-z</strong>这个参数的定义问题.</p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">cd $HOME/github/gcc
+mkdir build
+cd build
+../configure --prefix=&quot;$HOME/bin&quot; --disable-nls --enable-languages=c,c++
+make -j8
+make install</code></pre></div>
+
+<p>编译完成之后,会在<em>build/gcc</em>里有两个跟本文的主题有关的文件: 
+<strong>options.c</strong>/<strong>options.h</strong>.这两个文件跟gcc的编译选项处理有很大关系,这两个文件的
+生成是几个<em>$SRC/gcc</em>里的<em>awk</em>脚本共同作用的结果.</p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">// Makefile.in
+// 注意这里的输入是$(ALL_OPT_FILES)
+
+optionlist: s-options ; @true
+s-options: $(ALL_OPT_FILES) Makefile $(srcdir)/opt-gather.awk
+	$(AWK) -f $(srcdir)/opt-gather.awk $(ALL_OPT_FILES) &gt; tmp-optionlist
+	$(SHELL) $(srcdir)/../move-if-change tmp-optionlist optionlist
+	$(STAMP) s-options
+options.c: optionlist $(srcdir)/opt-functions.awk $(srcdir)/opt-read.awk \
+    $(srcdir)/optc-gen.awk
+	$(AWK) -f $(srcdir)/opt-functions.awk -f $(srcdir)/opt-read.awk \
+	       -f $(srcdir)/optc-gen.awk \
+	       -v header_name=&quot;config.h system.h coretypes.h options.h tm.h&quot; <span class="err">&lt;</span> $<span class="err">&lt;</span> &gt; $@	       
+options.h: s-options-h ; @true
+s-options-h: optionlist $(srcdir)/opt-functions.awk $(srcdir)/opt-read.awk \
+    $(srcdir)/opth-gen.awk
+	$(AWK) -f $(srcdir)/opt-functions.awk -f $(srcdir)/opt-read.awk \
+	       -f $(srcdir)/opth-gen.awk \
+	       <span class="err">&lt;</span> $<span class="err">&lt;</span> &gt; tmp-options.h
+	$(SHELL) $(srcdir)/../move-if-change tmp-options.h options.h
+	$(STAMP) $@
+
+// options.h/options.c输入文件,也就时生成gcc选项处理代码的配置文件.加选项只需要
+// 修改这些配置文件,很方便.
+# All option source files
+ALL_OPT_FILES=$(lang_opt_files) $(extra_opt_files)
+
+// 编译选项配置文件
+lang_opt_files=@lang_opt_files@ $(srcdir)/c-family/c.opt $(srcdir)/common.opt</code></pre></div>
+
+<p>由上面的代码可以知道编译选项的生成过程是输入配置文件,然后awk脚本处理配置文件,然
+后输出options.h/options.c</p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">// $SRC/gcc/common.opt里关于-z的内容如下:
+// 注意z底下的三个配置,Driver表示这是一个driver处理的选项(考虑一些debug的配置选
+项),Joined/Separate表示-z与跟-z本身相对于的参数(在本文中当然是指execstack/
+noexecstack)之间需不需要空白符隔开.</code></pre></div>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">z   
+Driver Joined Separate</code></pre></div>
+
+<p>相应的生成代码是:</p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">OPT_z = 1251, 		/* -z */</code></pre></div>
+
+<p>接着进行<strong>gcc</strong>对参数处理的分析</p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">// 处理调用gcc时的参数存入decoded_options数组里
+decode_argv()-&gt;decode_cmdline_options_to_array()-&gt;decode_cmdline_option()
+
+static unsigned int
+decode_cmdline_option (const char **argv, unsigned int lang_mask,
+		       struct cl_decoded_option *decoded)
+{
+  // awk处理参数配置文件时会将这些参数存进一个数组里cl_options[]
+  // 这里argv[0] + 1的值是&#39;z&#39;,由此来找到-z在cl_options数组里的索引值
+  opt_index = find_opt (argv[0] + 1, lang_mask);
+  // const struct cl_option *option
+  option = <span class="ni">&amp;cl_options[opt_index];</span>
+  // -z在配置文件里的定义是Joined Separate,所以会进入这个代码块
+  if (joined_arg_flag)
+    {
+      // 注意下面的+1,arg的值会是&quot;-z&quot;里z之后的下一个字符,是&#39;\0&#39;
+      arg = argv[extra_args] + cl_options[opt_index].opt_len + 1 + adjust_len;
+      //cl_missing_ok表示-z后面不接参数是否可以,显然是不行
+      if (*arg == &#39;\0&#39; <span class="err">&amp;&amp;</span> !option-&gt;cl_missing_ok)
+	{
+	  // -z的另外一个配置:Separate
+	  if (separate_arg_flag)
+	    {
+	      // 这里arg的值应该是&quot;execstack&quot;
+	      arg = argv[extra_args + 1];
+	      result = extra_args + 2;
+	      if (arg == NULL)
+		result = extra_args + 1;
+	      else
+		have_separate_arg = true;
+	    }
+	  else
+	      /* Missing argument.  */
+	      arg = NULL;
+	}
+    }
+    // 删掉无关代码
+    // 这个结构是要传会给调用者的
+    decoded-&gt;opt_index = opt_index; // OPT_z在cl_options[]里的索引
+    decoded-&gt;arg = arg;  // &quot;execstack&quot;
+    decoded-&gt;value = value;
+    decoded-&gt;errors = errors;
+    decoded-&gt;warn_message = warn_message;
+    // 后面的代码会处理别的参数,在本文的例子里就是待编译的文件:test.c</code></pre></div>
+
+<p><em>gcc</em>处理完参数之后会进行对输入文件的各种处理.当然在上面的分析中可知输入文件也是
+被处理参数的代码处理的,只不过<em>decoded-&gt;opt_index</em>表示这就是输入文件.</p>
+
+<p><em>gcc driver</em>对<em>cc1/as/ld</em>的调用都是通过一个<strong>spec</strong>文件来进行的,也是一种配置文件.
+<strong>spec</strong>配置的语法定义于
+[gcc manual: 3.19 Specifying Subprocesses and the Switches to Pass to Them]
+(https://gcc.gnu.org/onlinedocs/gcc/Spec-Files.html),
+与本文涉及到的比较重要的语法如下:
+&gt;%a
+处理as的相关调用. 默认的spec文件叫: asm
+%A
+处理as相关的调用,默认的spec文件是: asm_final
+%(name) 
+类似于宏替换,将之前定义的name在这里展开
+%{S}
+当选项S给出时,用-S替换S,注意这里的S是元字符
+%{S:X}
+对X进行替换操作,当选项-S给出时
+%{!S:X}
+对X进行替换操作,当选项-S没有给出时</p>
+
+<p><em>gcc driver</em>对可以调用的子工具的存储在一个统一的数组里.其中<em>compiler-&gt;spec</em>就是
+相应工具默认的调用参数.</p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">/* The default list of file name suffixes and their compilation specs.  */
+static const struct compiler default_compilers[] =
+{
+  // 只留下部分代表性的数据
+  {&quot;.cc&quot;, &quot;#C++&quot;, 0, 0, 0}, {&quot;.cxx&quot;, &quot;#C++&quot;, 0, 0, 0},
+  {&quot;.cpp&quot;, &quot;#C++&quot;, 0, 0, 0}, {&quot;.cp&quot;, &quot;#C++&quot;, 0, 0, 0},
+  {&quot;.c++&quot;, &quot;#C++&quot;, 0, 0, 0}, {&quot;.C&quot;, &quot;#C++&quot;, 0, 0, 0},
+  {&quot;.CPP&quot;, &quot;#C++&quot;, 0, 0, 0}, {&quot;.ii&quot;, &quot;#C++&quot;, 0, 0, 0},
+  {&quot;.ads&quot;, &quot;#Ada&quot;, 0, 0, 0}, {&quot;.adb&quot;, &quot;#Ada&quot;, 0, 0, 0},
+  {&quot;.go&quot;, &quot;#Go&quot;, 0, 1, 0},
+  /* Next come the entries for C.  */
+  {&quot;.c&quot;, &quot;@c&quot;, 0, 0, 1},
+  // 这里是cc1的spec文件
+  {&quot;@c&quot;,
+     &quot;%{E|M|MM:%(trad_capable_cpp) %(cpp_options) %(cpp_debug_options)}\
+      %{!E:%{!M:%{!MM:\
+          %{traditional:\
+      %eGNU C no longer supports -traditional without -E}\
+      %{save-temps*|traditional-cpp|no-integrated-cpp:%(trad_capable_cpp) \
+	  %(cpp_options) -o %{save-temps*:%b.i} %{!save-temps*:%g.i} \n\
+	    cc1 -fpreprocessed %{save-temps*:%b.i} %{!save-temps*:%g.i} \
+	  %(cc1_options)}\
+      %{!save-temps*:%{!traditional-cpp:%{!no-integrated-cpp:\
+	  cc1 %(cpp_unique_options) %(cc1_options)}}}\
+	  // 注意这里!fsyntax-only:%(invoke_as)表示,如果-fsyntax-only没有指定,那
+	  // 么就调用as(invoke_as),invoka_as    将会在这里在这里展开,invoke_as定
+	  // 义见下面.
+      %{!fsyntax-only:%(invoke_as)}}}}&quot;, 0, 0, 1},
+      {&quot;-&quot;,
+      &quot;%{!E:%e-E or -x required when input is from standard input}\
+      %(trad_capable_cpp) %(cpp_options) %(cpp_debug_options)&quot;, 0, 0, 0},
+  // 当gcc -S时
+  {&quot;.s&quot;, &quot;@assembler&quot;, 0, 0, 0},
+  {&quot;@assembler&quot;,
+   &quot;%{!M:%{!MM:%{!E:%{!S:as %(asm_debug) %(asm_options) %i %A }}}}&quot;, 0, 0, 0},
+
+#include &quot;specs.h&quot;
+  /* Mark end of table.  */
+  {0, 0, 0, 0, 0}
+};
+
+// 当gcc编译完输入文件之后,调用as时的driver spec定义.
+static const char *invoke_as =
+#ifdef AS_NEEDS_DASH_FOR_PIPED_INPUT
+&quot;%{!fwpa*:\
+   %{fcompare-debug=*|fdump-final-insns=*:%:compare-debug-dump-opt()}\
+   // 在下面可以看到很明显的as调用.
+   %{!S:-o %|.s |\n as %(asm_options) %|.s %A }\
+  }&quot;;
+#else
+&quot;%{!fwpa*:\
+   %{fcompare-debug=*|fdump-final-insns=*:%:compare-debug-dump-opt()}\
+   %{!S:-o %|.s |\n as %(asm_options) %m.s %A }\
+  }&quot;;
+#endif</code></pre></div>
+
+<p>接着将会是<em>gcc driver</em>调用相应的工具程序处理输入源文件.由上面的<em>spec</em>可以看到默
+认的<em>cc1/as</em>调用以输出汇编代码.</p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">/* 处理输入源文件,根据相应的工具程序的spec输出汇编代码*/
+void
+driver::do_spec_on_infiles () const
+{
+  size_t i;
+
+  for (i = 0; (int) i <span class="nt">&lt; n_infiles</span><span class="err">;</span> <span class="na">i</span><span class="err">++)</span>
+    <span class="err">{</span>
+      <span class="err">//</span> <span class="err">根绝输入文件的后缀查找编译器,就是找到上面的</span><span class="na">default_compilers</span><span class="err">[]里面的一个</span>
+      <span class="na">input_file_compiler</span>
+<span class="na">          =</span><span class="err"> </span><span class="s">lookup_compiler</span> <span class="err">(</span><span class="na">infiles</span><span class="err">[</span><span class="na">i</span><span class="err">].</span><span class="na">name</span><span class="err">,</span> <span class="na">input_filename_length</span><span class="err">,</span>
+			   <span class="na">infiles</span><span class="err">[</span><span class="na">i</span><span class="err">].</span><span class="na">language</span><span class="err">);</span>
+
+      <span class="na">if</span> <span class="err">(</span><span class="na">input_file_compiler</span><span class="err">)</span> <span class="err">{</span>
+	  <span class="na">if</span> <span class="err">(</span><span class="na">input_file_compiler-</span><span class="nt">&gt;</span>spec[0] == &#39;#&#39;)
+	    ;
+	  else {
+	      int value;
+	      // 根据spec文件来调用相应的工具程序,这里会输出汇编
+	      value = do_spec (input_file_compiler-&gt;spec);
+	      infiles[i].compiled = true;
+	  }
+	}    
+}</code></pre></div>
+
+<p>最后将是<em>gcc</em>调用<em>linker</em>来处理汇编代码,在这里本文将会研究<em>-z execstack</em>的传递过程.</p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">driver::maybe_run_linker() -&gt; do_spec(link_command_spec);
+
+#define link_command_spec LINK_COMMAND_SPEC
+#define LINK_COMMAND_SPEC &quot;\
+%{!fsyntax-only:%{!c:%{!M:%{!MM:%{!E:%{!S:\
+    // linker在这里定义为collect2,其实只是一个GNU ld的包装
+    %(linker) &quot; \
+    LINK_PLUGIN_SPEC \
+    &quot;%{flto|flto=*:%<span class="nt">&lt;fcompare-debug</span><span class="err">*}</span> <span class="err">\</span>
+    <span class="err">%{</span><span class="na">flto</span><span class="err">}</span> <span class="err">%{</span><span class="na">fno-lto</span><span class="err">}</span> <span class="err">%{</span><span class="na">flto=</span><span class="s">*}</span> <span class="err">%</span><span class="na">l</span> <span class="err">&quot;</span> <span class="na">LINK_PIE_SPEC</span> <span class="err">\</span>
+    <span class="err">&quot;%{</span><span class="na">fuse-ld=</span><span class="s">*:-fuse-ld=%*}</span> <span class="err">&quot;</span> <span class="na">LINK_COMPRESS_DEBUG_SPEC</span> <span class="err">\</span>
+    <span class="err">&quot;%</span><span class="na">X</span> <span class="err">%{</span><span class="na">o</span><span class="err">*}</span> <span class="err">%{</span><span class="na">e</span><span class="err">*}</span> <span class="err">%{</span><span class="na">N</span><span class="err">}</span> <span class="err">%{</span><span class="na">n</span><span class="err">}</span> <span class="err">%{</span><span class="na">r</span><span class="err">}\</span>
+    <span class="err">//</span> <span class="err">这里第</span><span class="na">4</span><span class="err">个就是本文关注的</span><span class="na">-z</span><span class="err">选项</span>
+    <span class="err">%{</span><span class="na">s</span><span class="err">}</span> <span class="err">%{</span><span class="na">t</span><span class="err">}</span> <span class="err">%{</span><span class="na">u</span><span class="err">*}</span> <span class="err">%{</span><span class="na">z</span><span class="err">}</span> <span class="err">%{</span><span class="na">Z</span><span class="err">}</span> <span class="err">%{!</span><span class="na">nostdlib:</span><span class="err">%{!</span><span class="na">nostartfiles:</span><span class="err">%</span><span class="na">S</span><span class="err">}}</span> <span class="err">\</span>
+    <span class="err">%{</span><span class="na">static:</span><span class="err">}</span> <span class="err">%{</span><span class="na">L</span><span class="err">*}</span> <span class="err">%(</span><span class="na">mfwrap</span><span class="err">)</span> <span class="err">%(</span><span class="na">link_libgcc</span><span class="err">)</span> <span class="err">&quot;</span> <span class="err">\</span>
+    <span class="na">VTABLE_VERIFICATION_SPEC</span> <span class="err">&quot;</span> <span class="err">&quot;</span> <span class="na">SANITIZER_EARLY_SPEC</span> <span class="err">&quot;</span> <span class="err">%</span><span class="na">o</span> <span class="err">&quot;</span> <span class="na">CHKP_SPEC</span> <span class="err">&quot;</span> <span class="err">\</span>
+    <span class="err">%{</span><span class="na">fopenacc</span><span class="err">|</span><span class="na">fopenmp</span><span class="err">|%</span><span class="na">:gt</span><span class="err">(%{</span><span class="na">ftree-parallelize-loops=</span><span class="s">*:%*}</span> <span class="na">1</span><span class="err">)</span><span class="na">:</span><span class="err">\</span>
+	<span class="err">%</span><span class="na">:include</span><span class="err">(</span><span class="na">libgomp</span><span class="err">.</span><span class="na">spec</span><span class="err">)%(</span><span class="na">link_gomp</span><span class="err">)}\</span>
+    <span class="err">%{</span><span class="na">fcilkplus:</span><span class="err">%</span><span class="na">:include</span><span class="err">(</span><span class="na">libcilkrts</span><span class="err">.</span><span class="na">spec</span><span class="err">)%(</span><span class="na">link_cilkrts</span><span class="err">)}\</span>
+    <span class="err">%{</span><span class="na">fgnu-tm:</span><span class="err">%</span><span class="na">:include</span><span class="err">(</span><span class="na">libitm</span><span class="err">.</span><span class="na">spec</span><span class="err">)%(</span><span class="na">link_itm</span><span class="err">)}\</span>
+    <span class="err">%(</span><span class="na">mflib</span><span class="err">)</span> <span class="err">&quot;</span> <span class="na">STACK_SPLIT_SPEC</span> <span class="err">&quot;\</span>
+    <span class="err">%{</span><span class="na">fprofile-arcs</span><span class="err">|</span><span class="na">fprofile-generate</span><span class="err">*|</span><span class="na">coverage:-lgcov</span><span class="err">}</span> <span class="err">&quot;</span> <span class="na">SANITIZER_SPEC</span> <span class="err">&quot;</span> <span class="err">\</span>
+    <span class="err">%{!</span><span class="na">nostdlib:</span><span class="err">%{!</span><span class="na">nodefaultlibs:</span><span class="err">%(</span><span class="na">link_ssp</span><span class="err">)</span> <span class="err">%(</span><span class="na">link_gcc_c_sequence</span><span class="err">)}}\</span>
+    <span class="err">%{!</span><span class="na">nostdlib:</span><span class="err">%{!</span><span class="na">nostartfiles:</span><span class="err">%</span><span class="na">E</span><span class="err">}}</span> <span class="err">%{</span><span class="na">T</span><span class="err">*}</span>  <span class="err">\</span><span class="na">n</span><span class="err">%(</span><span class="na">post_link</span><span class="err">)</span> <span class="err">}}}}}}&quot;</span></code></pre></div>
+
+<p>接着本文将会分析当遇到<em>LINK_COMMAND_SPEC</em>里的<em>%{z}</em>时进行的操作.</p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">do_spec()-&gt;do_spec_2()-&gt;do_spec_1()</code></pre></div>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">static int
+do_spec_1 (const char *spec, int inswitch, const char *soft_matched_part) {
+  // 在这里本文关注的spec将会是%{z}
+  const char *p = spec;
+  while ((c = *p++))
+    switch (inswitch ? &#39;a&#39; : c) {
+      case &#39;%&#39;:
+	    switch (c = *p++)
+		  case &#39;{&#39;:
+		    p = handle_braces (p);
+		    break;</code></pre></div>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">do_spec_1()-&gt;handle_braces()</code></pre></div>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">static const char *
+handle_braces (const char *p) {
+  // 标记&quot;z}&quot;的起始和结束
+  atom = p;
+  while (ISIDNUM (*p) || *p == &#39;-&#39; || *p == &#39;+&#39; || *p == &#39;=&#39;
+		 || *p == &#39;,&#39; || *p == &#39;.&#39; || *p == &#39;@&#39;)
+    p++;
+    end_atom = p;
+    // p当前的值应该是&#39;}&#39;
+    switch (*p) {
+	case &#39;<span class="err">&amp;</span>&#39;: case &#39;}&#39;:
+        /** 
+        struct switchstr {
+          const char *part1;
+          const char **args;
+          unsigned int live_cond;
+          bool known;
+          bool validated;
+          bool ordering;
+        };
+        struct switchstr switches[];
+        在这里的时候switches[]里面存储的是调用gcc时候的参数,其中有一项是{&quot;z&quot;, <span class="err">&amp;</span>&quot;execstack&quot;,}
+        根据&#39;z&#39;在switches[]里面置part1是&quot;z&quot;的这一项的ordering为1 */
+	  
+	mark_matching_switches (atom, end_atom, a_is_starred);
+	if (*p == &#39;}&#39;)
+	  process_marked_switches ();
+	break;
+    }  
+}</code></pre></div>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">do_spec_1()-&gt;handle_braces()-&gt;process_marked_switches()</code></pre></div>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">static inline void
+process_marked_switches (void) {
+  int i;
+
+  for (i = 0; i <span class="nt">&lt; n_switches</span><span class="err">;</span> <span class="na">i</span><span class="err">++)</span>
+    <span class="err">//</span> <span class="err">根据上面的</span><span class="na">ordering</span><span class="err">的标记调用</span><span class="na">give_switch</span> <span class="err">(</span><span class="na">i</span><span class="err">,</span> <span class="na">0</span><span class="err">)</span>
+    <span class="na">if</span> <span class="err">(</span><span class="na">switches</span><span class="err">[</span><span class="na">i</span><span class="err">].</span><span class="na">ordering =</span><span class="s">=</span> <span class="na">1</span><span class="err">)</span> <span class="err">{</span>
+	  <span class="na">switches</span><span class="err">[</span><span class="na">i</span><span class="err">].</span><span class="na">ordering =</span><span class="err"> </span><span class="s">0;</span>
+	  <span class="na">give_switch</span> <span class="err">(</span><span class="na">i</span><span class="err">,</span> <span class="na">0</span><span class="err">);</span>
+    <span class="err">}</span>
+<span class="err">}</span></code></pre></div>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">do_spec_1()-&gt;handle_braces()-&gt;process_marked_switches()-&gt;give_switch()</code></pre></div>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">static void
+give_switch (int switchnum, int omit_first_word) {
+  if (!omit_first_word) {
+      do_spec_1 (&quot;-&quot;, 0, NULL);
+      // 这里的part1是&quot;z&quot;,这个函数最终的处理会将&quot;z&quot;压入一个类似于C++ STL vertor
+      // 的容器argbuf里
+      do_spec_1 (switches[switchnum].part1, 1, NULL);
+  }
+
+  if (switches[switchnum].args != 0) {
+      const char **p;
+      for (p = switches[switchnum].args; *p; p++) {
+	    const char *arg = *p;
+	    // 这里arg的值将会是&quot;execstack&quot;,这个函数会将execstack压入argbuf里,到
+	    // 这里argbuf的值已经是&quot;z execstack&quot;了,由上面的link_command_spec定义
+	    // 中的%{z}和spec文件的相关语义,gcc最终对linker的调用将会是:
+	    // collect2 -z execstack ... 这个样子的
+	    do_spec_1 (arg, 1, NULL);
+	  }
+    }
+    // ...
+}</code></pre></div>
+
+<h3 id="nxld">NX在ld里面的处理</h3>
+
+<p>下面将会分析<em>linker</em>遇到<em>-z execstack</em>时进行怎样的处理.对生成的ELF文件产生怎样的
+影响.</p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">在binutils/include/elf/common.h里与execstack/noexecstack相关的定义如下:
+
+#define PF_X		(1 <span class="err">&lt;</span><span class="nt">&lt; 0</span><span class="err">)</span>	<span class="err">/*</span> <span class="na">Segment</span> <span class="na">is</span> <span class="na">executable</span> <span class="err">*/</span>
+<span class="err">#</span><span class="na">define</span> <span class="na">PF_W</span>		<span class="err">(</span><span class="na">1</span> <span class="err">&lt;&lt;</span> <span class="na">1</span><span class="err">)</span>	<span class="err">/*</span> <span class="na">Segment</span> <span class="na">is</span> <span class="na">writable</span> <span class="err">*/</span>
+<span class="err">#</span><span class="na">define</span> <span class="na">PF_R</span>		<span class="err">(</span><span class="na">1</span> <span class="err">&lt;&lt;</span> <span class="na">2</span><span class="err">)</span>	<span class="err">/*</span> <span class="na">Segment</span> <span class="na">is</span> <span class="na">readable</span> <span class="err">*/</span></code></pre></div>
+
+<p>由于篇幅所限,下面仅仅分析当<em>ld</em>被调用时与<em>-z execstack</em>相关的代码.</p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">/**
+	bfd_link_info里分别有两个位域: 
+	unsigned int execstack: 1;
+    	unsigned int noexecstack: 1; */
+	struct bfd_link_info link_info;
+// GUN linker的入口函数
+int
+main (int argc, char **argv) {
+  // 给bfd_link_info赋一些默认值
+  // 处理参数,不过-z execstack的处理代码是在binutils里架构相关的结构里定义的
+  parse_args (argc, argv);
+  // 做一些分配地址之前的准备工作
+  lang_process ();
+  // 生成一个elf文件
+  ldwrite ();
+  // ...
+}</code></pre></div>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">main()-&gt;parse_args()-&gt;ldemul_handle_option()-&gt;ld_emulation-&gt;handle_option()</code></pre></div>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">/** ld_emulation是一个跟架构相关的结构,binutils里面根据后端的不同分开定义是为了
+移植和feature的方便,在项目里是很常见的工程设计.*/
+
+// EMULATION_NAME是一个类似于elf_x86_64这样的名字
+static bfd_boolean
+gld${EMULATION_NAME}_handle_option (int optc) {
+  switch (optc) {
+    case &#39;z&#39;:
+    if (strcmp (optarg, &quot;execstack&quot;) == 0) {
+      // 在link_info里保存置相关的位
+	  link_info.execstack = TRUE;
+	  link_info.noexecstack = FALSE;
+	} else if (strcmp (optarg, &quot;noexecstack&quot;) == 0) {
+	  link_info.noexecstack = TRUE;
+	  link_info.execstack = FALSE;
+	}
+	// ...
+  }
+}</code></pre></div>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">main()-&gt;lang_process ()-&gt;ldemul_before_allocation()-&gt;ld_emulation-&gt;before_allocation()</code></pre></div>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">// ld_emulation的初始化定义为:
+struct ld_emulation_xfer_struct ld_${EMULATION_NAME}_emulation =
+{
+  gld${EMULATION_NAME}_before_parse,
+  syslib_default,
+  hll_default,
+  after_parse_default,
+  after_open_default,
+  after_allocation_default,
+  set_output_arch_default,
+  ldemul_default_target,
+  // ld_emulation-&gt;before_allocation()的调用会是这个函数
+  gld${EMULATION_NAME}_before_allocation,
+  //...
+};</code></pre></div>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">gld${EMULATION_NAME}_before_allocation()-&gt;bfd_elf_size_dynamic_sections()</code></pre></div>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">bfd_boolean
+bfd_elf_size_dynamic_sections (bfd *output_bfd,
+			       const char *soname,
+			       const char *rpath,
+			       const char *filter_shlib,
+			       const char * const *auxiliary_filters,
+			       struct bfd_link_info *info,
+			       asection **sinterpptr,
+			       struct bfd_elf_version_tree *verdefs) {
+  
+  // 根据参数的分析结果,也就是bfd_link_info结构中的execstack/noexecstack来置位
+  // stack_flags
+  if (info-&gt;execstack)
+    elf_tdata (output_bfd)-&gt;stack_flags = PF_R | PF_W | PF_X;
+  else if (info-&gt;noexecstack)
+    elf_tdata (output_bfd)-&gt;stack_flags = PF_R | PF_W;
+  // ...
+}</code></pre></div>
+
+<p><em>ld_write()</em>将会是<em>linker</em>的最后一步,正确执行完将会得到一个目标文件(比如说<em>ELF</em>
+格式的可执行文件)</p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">main-&gt;ld_write()-&gt;bfd_final_link()-&gt;bfd_elf_final_link()
+-&gt;_bfd_elf_compute_section_file_positions()
+-&gt;assign_file_positions_except_relocs()-&gt;assign_file_positions_for_segments()
+-&gt;map_sections_to_segments()</code></pre></div>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">// 这个结构描述section到segment的对应关系
+struct elf_segment_map
+{
+  /* Next program segment.  */
+  struct elf_segment_map *next;
+  unsigned long p_type;
+  unsigned long p_flags;
+  bfd_vma p_paddr;
+  unsigned int p_flags_valid : 1;
+  unsigned int p_paddr_valid : 1;
+  unsigned int includes_filehdr : 1;
+  unsigned int includes_phdrs : 1;
+  /* 这个segment包含的section数目*/
+  unsigned int count;
+  /* Sections*/
+  asection *sections[1];
+};
+
+map_sections_to_segments() {
+  // 删掉跟本文无关的代码
+  struct elf_segment_map *m;
+  if (elf_tdata (abfd)-&gt;stack_flags) {
+    amt = sizeof (struct elf_segment_map);
+    m = bfd_zalloc (abfd, amt);
+    if (m == NULL)
+	  goto error_return;
+    m-&gt;next = NULL;
+    m-&gt;p_type = PT_GNU_STACK;
+    /** 根据stack_flags来置位segment的p_flags,最终这个值就是ELF文件的
+    Program Header里的p_flag的值,在ELF1.2标准里定义的可选值是: 
+    PF_X 0x1
+    PF_W 0x2
+    PF_R 0x4
+    */
+    m-&gt;p_flags = elf_tdata (abfd)-&gt;stack_flags;
+    m-&gt;p_flags_valid = 1;
+
+    *pm = m;
+    pm = <span class="ni">&amp;m-&gt;next;</span>
+  }
+}</code></pre></div>
+
+<h3 id="nxkernel">NX在kernel里的捕获</h3>
+<p>上面已经介绍了<em>gcc/ld</em>里对<em>-z execstack</em>的处理,总共的影响就是在ELF文件里对应的
+<em>program header</em>里置相关的位.下面将会描述在ELF文件里这样的置位前提下,如果违反了
+访问规则,<em>kernel</em>如何捕获非法访问.</p>
+
+<p>一般来说<em>kernel</em>执行一个binary的时候会进行下面的代码调用链:</p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">do_execve()-&gt;search_binary_handler()-&gt;linux_binfmt.load_binary()
+// elf文件的情况下load_binary()实际是就是调用load_elf_binary()
+static struct linux_binfmt elf_format = {
+	.module		= THIS_MODULE,
+	.load_binary	= load_elf_binary,
+	.load_shlib	= load_elf_library,
+	.core_dump	= elf_core_dump,
+	.min_coredump	= ELF_EXEC_PAGESIZE,
+};</code></pre></div>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">static int load_elf_binary(struct linux_binprm *bprm, struct pt_regs *regs) {
+  int executable_stack = EXSTACK_DEFAULT;
+  // bprm-&gt;buf里存储的就是elf文件的二进制流,读入elf header
+  loc-&gt;elf_ex = *((struct elfhdr *)bprm-&gt;buf);
+  // e_phnum表示program header的数目,这里分配的存储是为了容纳elf里的
+  // program header在进程地址空间里
+  size = loc-&gt;elf_ex.e_phnum * sizeof(struct elf_phdr);
+  retval = -ENOMEM;
+  elf_phdata = kmalloc(size, GFP_KERNEL);
+  if (!elf_phdata)
+    goto out;
+  // 读入elf文件program header进入地址空间
+  retval = kernel_read(bprm-&gt;file, loc-&gt;elf_ex.e_phoff,
+			     (char *)elf_phdata, size);
+  // ...
+  for (i = 0; i <span class="nt">&lt; loc-&gt;</span>elf_ex.e_phnum; i++, elf_ppnt++)
+    if (elf_ppnt-&gt;p_type == PT_GNU_STACK) {
+      // 在ld里置位的p_flags
+        if (elf_ppnt-&gt;p_flags <span class="err">&amp;</span> PF_X)
+	  executable_stack = EXSTACK_ENABLE_X;
+	else
+	  executable_stack = EXSTACK_DISABLE_X;
+        break;
+    }
+	//...
+  retval = setup_arg_pages(bprm, randomize_stack_top(STACK_TOP),
+				 executable_stack);</code></pre></div>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">load_elf_binary()-&gt;setup_arg_pages()</code></pre></div>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">// 处理加载的elf对应的进程的初始stack对应的vm_area_struct
+int setup_arg_pages(struct linux_binprm *bprm,
+		    unsigned long stack_top,
+		    int executable_stack) {	
+	struct mm_struct *mm = current-&gt;mm;
+	struct vm_area_struct *vma = bprm-&gt;vma;
+	unsigned long vm_flags;
+    	// ...
+    	if (unlikely(executable_stack == EXSTACK_ENABLE_X))
+		vm_flags |= VM_EXEC;
+	else if (executable_stack == EXSTACK_DISABLE_X)
+		vm_flags <span class="err">&amp;</span>= ~VM_EXEC;
+	vm_flags |= mm-&gt;def_flags;
+	vm_flags |= VM_STACK_INCOMPLETE_SETUP;
+	// vm_flags里的位会加入到vma里
+    	ret = mprotect_fixup(vma, <span class="err">&amp;</span>prev, vma-&gt;vm_start, vma-&gt;vm_end,
+			vm_flags);
+	// ...</code></pre></div>
+
+<p>注意上面建立的<em>vm_area_struct</em>只是存在于进程的虚拟地址空间里.并没有映射实际的RAM,
+当这个ELF对<em>stack</em>进行访问时就会进入<em>page fault</em>,处理代码就是<em>do_page_fault()</em></p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">void do_page_fault(struct pt_regs *regs, unsigned long error_code) {
+	// 忽略掉跟本文讨论无关的一系列kernel的检查过程
+    	// 对于我们刚刚映射的stack VMA来说会执行到这里
+good_area:
+	// access_error()会对vma进行常规检查
+	if (unlikely(access_error(error_code, vma))) {
+		bad_area_access_error(regs, error_code, address);
+		return;
+	}
+	// ...
+}</code></pre></div>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">do_page_fault()-&gt;access_error()</code></pre></div>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">static inline int
+access_error(unsigned long error_code, struct vm_area_struct *vma)
+{
+	if (error_code <span class="err">&amp;</span> PF_WRITE) {
+	  /* write, present and write, not present: */
+	    if (unlikely(!(vma-&gt;vm_flags <span class="err">&amp;</span> VM_WRITE)))
+	      return 1;
+	    return 0;
+	}
+	/* read, present: */
+	if (unlikely(error_code <span class="err">&amp;</span> PF_PROT))
+		return 1;
+	// 假如调用gcc编译elf文件时给出的参数是-z noexecstack,那么stack 
+	// vma-&gt;flags的VM_EXEC位肯定是清除了的.如果是这种情况,那么access_error()
+	// 返回1,do_page_fault()也会返回上一级,对应的必将是kernel的报错.
+	if (unlikely(!(vma-&gt;vm_flags <span class="err">&amp;</span> (VM_READ | VM_EXEC | VM_WRITE))))
+	  return 1;
+
+	return 0;
+}</code></pre></div>
+
+<h3 id="nx">NX软件实现小结</h3>
+<p>总结一下前面的内容,就是当调用<em>gcc -z execstack test.c</em>时,gcc将参数打包处理传给ld,
+由于参数的影响,ld会在生成的ELF文件stack对应的program header里置位p_flags的PF_X值,
+当ELF文件执行时,由于RAM需要分配就会触发page fault,然后处理do_page_fault()函数里
+调用access_error()以捕获到stack的执行权限错误.</p>
+
+<h2 id="nxkernel-cpu">NX在kernel CPU里的实现:</h2>
+
+<p>NX在CPU里面的实现跟硬件有很大的关系.所以下面的描述先从硬件相关的寄存器开始描述,
+然后进行kernel层面的描述.</p>
+
+<h3 id="nx-1">NX相关的寄存器</h3>
+
+<blockquote>
+  <p>Intel® 64 and IA-32 Architectures Developer’s Manual - System Programming Guide</p>
+
+  <p>2.2.1  Extended Feature Enable Register(EFER)
+IA32_EFER MSR提供了一些IA32e模式相关的使能配置位,还有另外一些位是跟page-access权
+限相关的.
+typedef struct IA32_EFER {
+	long SYSCALL_Enable : 1;	// Enables SYSCALL/SYSRET instructions in 64-bit mode
+	long Reserved : 7;		// Reserved
+	long IA-32e_Mode_Enable : 1;	// Enables IA-32e mode operation
+	long Reserved : 1;	        // Reserved
+	long IA-32e_Mode_Active : 1;	// Indicates IA-32e mode is active when set.
+	long Execute_Disable_Bit_Enable : 1 // Enables page access restriction by preventing instruction 
+					    // fetches from PAE pages with the XD bit set.
+	                                    // 我们感兴趣的这一位,也就是第12位,这一位也叫作NXE
+	long : 0;
+} IA32_EFER;
+IA32_EFER.NXE仅仅对PAE和IA-32e模式起作用(因为只有PAE/IA-32e模式下的paging单元(页
+表项/页目录表项)是64位的).如果IA32_EFER.NXE = 1,从某一线性地址处的指令预取将会被
+禁止,即使这一线性地址处的数据访问是允许的.</p>
+</blockquote>
+
+<blockquote>
+  <p>如果CPUID.80000001H:EDX.NX [bit 20] = 1, IA32_EFER.NXE才能够被设置为1,不支持
+CPUID.80000001H的处理器IA32_EFER.NXE不能被设置为1.</p>
+</blockquote>
+
+<blockquote>
+  <p>4.4.2  Linear-Address Translation with PAE Paging 
+在PAE paging中,如果IA32_EFER.NXE = 0且PDE/ PTE的P是1, 则XD(63位)是保留的.</p>
+</blockquote>
+
+<blockquote>
+  <p>(PAE/PTE).63 (XD)跟IA32_EFER.NXE的功能是类似的,只不过存在于页表寄存器/页目录表
+寄存器的最高位.</p>
+</blockquote>
+
+<p>由上面的内容可以知道,要想在MMU层面使用NX,首先需要检测
+CPUID.80000001H:EDX.NX [bit 20]是否为1,如果是1进行IA32_EFER.NXE的置位使能,然后按
+照需在PAE/PTE里使能第63位(XD).</p>
+
+<h3 id="nxkernel-1">NX在kernel里的实现</h3>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">在arch/x86/mm/Setup_nx.c有如下的代码:
+
+static int disable_nx;
+/*
+ * noexec = on|off
+ *
+ * Control non-executable mappings for processes.
+ *
+ * on      Enable
+ * off     Disable
+ */
+static int __init noexec_setup(char *str)
+{
+	if (!str)
+		return -EINVAL;
+	if (!strncmp(str, &quot;on&quot;, 2)) {
+		disable_nx = 0;
+	} else if (!strncmp(str, &quot;off&quot;, 3)) {
+		disable_nx = 1;
+	}
+	x86_configure_nx();
+	return 0;
+}
+// 注册到kernel的启动组件里,可以在boot参数里配置是否启用noexec
+early_param(&quot;noexec&quot;, noexec_setup);
+
+void x86_configure_nx(void)
+{
+	if (boot_cpu_has(X86_FEATURE_NX) <span class="err">&amp;&amp;</span> !disable_nx)
+		__supported_pte_mask |= _PAGE_NX;
+	else
+		__supported_pte_mask <span class="err">&amp;</span>= ~_PAGE_NX;
+}
+
+// __supported_pte_mask的初始定义
+pteval_t __supported_pte_mask __read_mostly = ~0;
+
+// _PAGE_NX的定义与PAE/PTE的第63位(XD)对应
+#if defined(CONFIG_X86_64) || defined(CONFIG_X86_PAE)
+#define _PAGE_NX	1 <span class="err">&lt;</span><span class="nt">&lt; 63</span></code></pre></div>
+
+<p>MMU实现NX的在三层的paging结构中是类似的.下面的描述以PTE为代表来进行.</p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html">#define mk_pte(page, pgprot)   pfn_pte(page_to_pfn(page), (pgprot))
+// 创建一个能进入PTE的项,对于本文的NX描述来说,这个值肯定是64位的.
+static inline pte_t pfn_pte(unsigned long page_nr, pgprot_t pgprot)
+{
+	return __pte(((phys_addr_t)page_nr <span class="err">&lt;</span><span class="nt">&lt; PAGE_SHIFT</span><span class="err">)</span> <span class="err">|</span>
+		     <span class="na">massage_pgprot</span><span class="err">(</span><span class="na">pgprot</span><span class="err">));</span>
+<span class="err">}</span>
+
+<span class="na">static</span> <span class="na">inline</span> <span class="na">pgprotval_t</span> <span class="na">massage_pgprot</span><span class="err">(</span><span class="na">pgprot_t</span> <span class="na">pgprot</span><span class="err">)</span>
+<span class="err">{</span>
+	<span class="na">pgprotval_t</span> <span class="na">protval =</span><span class="err"> </span><span class="s">pgprot_val(pgprot);</span>
+	<span class="na">if</span> <span class="err">(</span><span class="na">protval</span> <span class="err">&amp;</span> <span class="na">_PAGE_PRESENT</span><span class="err">)</span>
+	    <span class="err">//</span> <span class="err">这里对每一个实际作用的访问(</span><span class="na">_PAGE_PRESENT</span><span class="err">置位),</span><span class="na">pte_t</span><span class="err">(最终是要写入</span>
+	    <span class="err">//</span> <span class="na">PTE</span><span class="err">项的)的值的产生都要经过</span><span class="na">__supported_pte_mask</span><span class="err">,这个变量里按需存储</span>
+	    <span class="err">//</span> <span class="err">了是否使用</span><span class="na">_PAGE_NX</span><span class="err">的信息.最终的</span><span class="na">pte_t</span><span class="err">的值会写入</span><span class="na">PTE</span><span class="err">项.</span>
+	    <span class="na">protval</span> <span class="err">&amp;=</span> <span class="na">__supported_pte_mask</span><span class="err">;</span>
+
+	<span class="na">return</span> <span class="na">protval</span><span class="err">;</span>
+<span class="err">}</span></code></pre></div>
+
+<p>写入PAT/PTE之后,就是CPU自己的操作了,paging之前CPU会检查相应的置位,以决定是否预取
+指令.</p>
+
+        </section>
+    </article>
+</main>
+
+    <footer class="site-footer clearfix">
+        <section class="copyright"><a href="https://github.com/TryGhost/Casper">Ghost Foundation</a> © 2015  <a class="icon-twitter" href="https://twitter.com/embedsec"></a><a class="icon-feed" href="http://embedsec.systems/zh/feed.xml"></a></section>
+</footer>
+
+    <script src="/js/jquery.min.js"></script>
+<script type="text/javascript" src="/js/jquery.fitvids.js"></script>
+<script type="text/javascript" src="/js/index.js"></script>
+
+</body>
+</html>
