@@ -61,17 +61,17 @@ binaries are built with mingw.</p>
   <li>Create the work directory</li>
 </ul>
 
-<p><code>bash
-  mkdir working_directory
-  TOOLCHAINS_BUILD_TOP=work_direcory # optional, only for clear description
-									                   # below
-  export TOOLCHAINS_BUILD_TOP
-  cd work_directory				           # build will be done in this directory
-</code></p>
+<div class="language-bash highlighter-rouge"><pre class="highlight"><code>  mkdir working_directory
+  <span class="nv">TOOLCHAINS_BUILD_TOP</span><span class="o">=</span>work_direcory <span class="c"># optional, only for clear description</span>
+									                   <span class="c"># below</span>
+  <span class="nb">export </span>TOOLCHAINS_BUILD_TOP
+  <span class="nb">cd </span>work_directory				           <span class="c"># build will be done in this directory</span>
+</code></pre>
+</div>
 
 <p>There are two versions Clang/LLVM code tree in AOSP, the first is:
 aosp/platform/external/(clang|llvm), and the second is:
-aosp/toolchain/(clang|llvm). </p>
+aosp/toolchain/(clang|llvm).</p>
 
 <p>Something most important is:</p>
 
@@ -87,13 +87,13 @@ NDK as is used by the platform (AOSP).</p>
 about what had the googelers done to the toolchain/(clang|llvm), you can clone
 the source code.</p>
 
-<p><code>bash
-  # ustc source is available too
+<div class="language-bash highlighter-rouge"><pre class="highlight"><code>  <span class="c"># ustc source is available too</span>
   git clone https://aosp.tuna.tsinghua.edu.cn/toolchain/clang
   git clone https://aosp.tuna.tsinghua.edu.cn/toolchain/llvm
   git branch -a
-  git branch release_36   # Only doing a checkout, can see the source code
-</code></p>
+  git branch release_36   <span class="c"># Only doing a checkout, can see the source code</span>
+</code></pre>
+</div>
 
 <p>Now, we have the source code of NDK compiler, download the Clang/LLVM-3.6
 official source, and compare the two project(NDK version and official version),
@@ -107,29 +107,29 @@ Android64Target), that’s all.</p>
   <li>
     <p>get and config the <em>repo</em></p>
 
-    <p><code>bash
-mkdir ~/bin
-PATH=~/bin:$PATH
+    <div class="language-bash highlighter-rouge"><pre class="highlight"><code>mkdir ~/bin
+<span class="nv">PATH</span><span class="o">=</span>~/bin:<span class="nv">$PATH</span>
 curl https://storage.googleapis.com/git-repo-downloads/repo &gt; ~/bin/repo
 chmod a+x ~/bin/repo
-</code></p>
+</code></pre>
+    </div>
   </li>
   <li>
-    <p>checkout the <code>clang</code></p>
+    <p>checkout the <code class="highlighter-rouge">clang</code></p>
 
     <p>We have three source repository that repo can get the source code in The
 following section, The last one is google official source had fucked by GFW.
 Only execute <strong>one</strong> of the three repo init below.</p>
 
-    <p><code>bash
-repo init -u git://mirrors.ustc.edu.cn/aosp/platform/manifest -b llvm
+    <div class="language-bash highlighter-rouge"><pre class="highlight"><code>repo init -u git://mirrors.ustc.edu.cn/aosp/platform/manifest -b llvm
 repo init -u https://aosp.tuna.tsinghua.edu.cn/platform/manifest -b llvm
 repo init -u https://android.googlesource.com/platform/manifest -b llvm  
-</code></p>
+</code></pre>
+    </div>
 
-    <p><code>bash
-repo sync  # get the toolchain source
-</code></p>
+    <div class="language-bash highlighter-rouge"><pre class="highlight"><code>repo sync  <span class="c"># get the toolchain source</span>
+</code></pre>
+    </div>
 
     <ul>
       <li>
@@ -144,16 +144,16 @@ deal with the dependency and repository locations of sub-project of every
 topic(which is a set of git branchs). $TOOLCHAINS_BUILD_TOP/.repo/manifests
 is a local git respository contains versions of config file. According to
 this, we have a new way get topic(for example, after we get clang/llvm,
-we want gcc now). </li>
+we want gcc now).</li>
         </ul>
 
-        <p><code>bash
-  cd $TOOLCHAINS_BUILD_TOP/.repo/manifests
-  git branch -a 	  # list of all the topic,
-                              # e,g. : remotes/origin/gcc, the topic of gcc
-  git checkout gcc  # the config file : default.xml is for gcc NOW
-  repo sync			    # get the gcc source
-</code></p>
+        <div class="language-bash highlighter-rouge"><pre class="highlight"><code>  <span class="nb">cd</span> <span class="nv">$TOOLCHAINS_BUILD_TOP</span>/.repo/manifests
+  git branch -a 	  <span class="c"># list of all the topic,</span>
+                              <span class="c"># e,g. : remotes/origin/gcc, the topic of gcc</span>
+  git checkout gcc  <span class="c"># the config file : default.xml is for gcc NOW</span>
+  repo sync			    <span class="c"># get the gcc source</span>
+</code></pre>
+        </div>
 
         <p>Follow the analysis, we may get a successfull compiled Clang/LLVM topic
 according to the config file(default.xml), but there is another magic
@@ -169,13 +169,13 @@ AOSP. So, recommending for repo.</p>
     <p>There is request about java environment in line 200+ at
 $TOOLCHAINS_BUILD_TOP/build/core/main.mk : at least OpenJDK1.8.</p>
 
-    <p><code>bash
-sudo add-apt-repository ppa:openjdk-r/ppa # add PPA
+    <div class="language-bash highlighter-rouge"><pre class="highlight"><code>sudo add-apt-repository ppa:openjdk-r/ppa <span class="c"># add PPA</span>
 sudo apt-get update 
 sudo apt-get install openjdk-8-jdk
-sudo update-alternatives --config java    # config the default java
-sudo update-alternatives --config javac   # config the default javac
-</code></p>
+sudo update-alternatives --config java    <span class="c"># config the default java</span>
+sudo update-alternatives --config javac   <span class="c"># config the default javac</span>
+</code></pre>
+    </div>
   </li>
 </ul>
 
@@ -185,13 +185,13 @@ sudo update-alternatives --config javac   # config the default javac
   use the binary generated by the first stage. in other word, the last deliver
   binary is generated by itself.</p>
 
-<p><code>bash
+<p><code class="highlighter-rouge">bash
   python external/clang/build.py
  </code></p>
 
 <h2 id="check">check</h2>
 
-<p><code>bash
+<p><code class="highlighter-rouge">bash
   cd $TOP_SOURCE/external/llvm
   ./android_test.sh
  </code></p>

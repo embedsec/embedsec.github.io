@@ -8,6 +8,21 @@
 		
 			
 			<item>
+				<title>PIC and PIE analysis</title>
+				
+					<description>&lt;p&gt;#Position Independent Code(PIC) and Position Independent Executable(PIE)
+@(mitgation)[PIC|PIE|gcc|binutils]&lt;/p&gt;
+
+</description>
+				
+				<pubDate>Thu, 30 Jun 2016 00:00:00 +0800</pubDate>
+				<link>http://embedsec.systems/zh/gnulinux-security/2016/06/30/PIC-and-PIE-analysis.html</link>
+				<guid isPermaLink="true">http://embedsec.systems/zh/gnulinux-security/2016/06/30/PIC-and-PIE-analysis.html</guid>
+			</item>
+			
+		
+			
+			<item>
 				<title>NX(No-eXecute)的实现分析</title>
 				
 					<description>&lt;h1 id=&quot;nxno-execute&quot;&gt;NX(No-eXecute)的实现分析&lt;/h1&gt;
