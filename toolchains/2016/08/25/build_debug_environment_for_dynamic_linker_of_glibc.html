@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+    <title>Build debug environment for the dynamic linker of Glibc</title>
+    <meta name="description" content="">
+
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="shortcut icon" href="/favicon.ico">
+
+    <link rel="stylesheet" type="text/css" href="/css/screen.css">
+    <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Merriweather:300,700,700italic,300italic|Open+Sans:700,400">
+
+    <link rel="canonical" href="">
+
+    <style id="fit-vids-style">.fluid-width-video-wrapper{width:100%;position:relative;padding:0;}.fluid-width-video-wrapper iframe,.fluid-width-video-wrapper object,.fluid-width-video-wrapper embed {position:absolute;top:0;left:0;width:100%;height:100%;}</style>
+</head>
+
+<body class="home-template">
+    <header class="main-header post-head no-cover">
+    <nav class="main-nav clearfix">
+        <a class="back-button icon-arrow-left" href="http://embedsec.systems">Home</a>
+        
+    </nav>
+</header>
+
+    <main class="content" role="main">
+    <article class="post">
+
+        <header class="post-header">
+            <h1 class="post-title">Build debug environment for the dynamic linker of Glibc</h1>
+            <section class="post-meta">
+                <a></a>
+                <time class="post-date" datetime="2016-08-25">25 August 2016</time>
+                <a href="mailto:zet@tya.email">zet@tya.email</a>
+            </section>
+        </header>
+
+        <section class="post-content">
+            <h1 id="build-debug-environment-for-the-dynamic-linker-of-glibc">Build debug environment for the dynamic linker of Glibc</h1>
+<p>@(Toolchains)[Glibc|dynamic-linker|gdb|gcc]</p>
+
+<h2 id="prologue">00 Prologue</h2>
+
+<p>Recently my work need some research about the dynamic linker of Glibc, when I
+use gdb from the PLT table of executable or shared library into the Glibc source
+in a general way will see this:</p>
+
+<div class="language-bash highlighter-rouge"><pre class="highlight"><code><span class="o">[</span>...]
+   |0xf7ff04b3      mov    0x10<span class="o">(</span>%esp<span class="o">)</span>,%edx                                                                                                         |
+  &gt;|0xf7ff04b7      mov    0xc<span class="o">(</span>%esp<span class="o">)</span>,%eax                                                                                                          |
+   |0xf7ff04bb      call   0xf7fea080     
+<span class="o">[</span>...] 
+<span class="o">(</span>gdb<span class="o">)</span> si
+<span class="o">[</span>...]
+0x0804852b <span class="k">in </span>stub@plt <span class="o">()</span>
+0x08048500 <span class="k">in</span> ?? <span class="o">()</span>
+0xf7ff04b0 <span class="k">in</span> ?? <span class="o">()</span> from /lib/ld-linux.so.2
+0xf7ff04b3 <span class="k">in</span> ?? <span class="o">()</span> from /lib/ld-linux.so.2
+<span class="o">[</span>...]
+0xf7ff04b7 <span class="k">in</span> ?? <span class="o">()</span> from /lib/ld-linux.so.2
+<span class="o">[</span>...]
+
+</code></pre>
+</div>
+<p>So, how can i overcome this?</p>
+
+<h2 id="analysis">01 Analysis</h2>
+
+<p>I can deduce must be miss debug symbol information from the assembly code of the
+top half of above list, and also miss lineno table for gdb from the output of 
+command window of gdb.</p>
+
+<p>Because I have successful experience of build debug environment(../configure 
+CFLAGS=’-Og’ ,etc) for GCC/Binutils, so first I build a new imaginary debuggable
+Glibc from source.</p>
+
+<div class="language-bash highlighter-rouge"><pre class="highlight"><code>gcc -o hello_world ... <span class="se">\</span>
+-Wl,--rpath<span class="o">=</span>/new/glibc <span class="se">\</span>
+-Wl,--dynamic-linker<span class="o">=</span>/new/glibc/lib/ld-linux.so.2 <span class="se">\</span>
+hello_world.c
+
+</code></pre>
+</div>
+<p>When gdb into Glibc it still not works. so sad.</p>
+
+<p>I thought it must be configure/makefile/linker scripts has stripped the debug 
+information of Glibc or just generated the debug information gdb and me can not
+find them. Glibc has a horrible coding style and complicate build system, I have
+no time research it in detials.</p>
+
+<p>So, must has some simple solution.</p>
+
+<h2 id="solution">02 Solution</h2>
+
+<p>Back to the problem itself after above analysis, I konw gdb need debug symbol
+information and debug lineno table. So download the extra bubug information of
+Glibc. Gdb can deal with this - debuging information in separate files. Also Gdb
+can deal with extral souce code - specifying source diretories.</p>
+
+<div class="language-bash highlighter-rouge"><pre class="highlight"><code><span class="c">#Download the debug symbols for libc:</span>
+
+zet@fuck-GFW ~ <span class="nv">$sudo</span> apt-get install libc6-dbg
+
+<span class="c">#And if you're on an x64 system debugging x86 code:</span>
+
+zet@fuck-GFW ~ <span class="nv">$sudo</span> apt-get install libc6:i386
+zet@fuck-GFW ~ <span class="nv">$sudo</span> apt-get install libc6-dbg:i386
+
+<span class="c">#Make sure you can see this file.</span>
+zet@fuck-GFW ~ <span class="nv">$ls</span> -al /usr/lib/debug/
+total 52
+drwxr-xr-x   4 root root  4096 Nov 29  2015 .
+drwxr-xr-x 188 root root 36864 Aug 12 18:50 ..
+drwxr-xr-x   4 root root  4096 Aug 23 19:38 lib
+drwxr-xr-x   3 root root  4096 Nov 29  2015 usr
+zet@fuck-GFW ~ <span class="nv">$ls</span> -al /usr/lib/debug/lib/
+total 16
+drwxr-xr-x 4 root root 4096 Aug 23 19:38 .
+drwxr-xr-x 4 root root 4096 Nov 29  2015 ..
+drwxr-xr-x 2 root root 4096 Aug 23 19:38 i386-linux-gnu
+drwxr-xr-x 2 root root 4096 Jun  3 14:15 x86_64-linux-gnu
+
+</code></pre>
+</div>
+
+<p>After get the Glibc debug information, only left the Glibc source code. Thanks
+for Ubuntu package manager system, get source code is simple.</p>
+
+<div class="language-bash highlighter-rouge"><pre class="highlight"><code><span class="c">#apt-get source will download the source in current directory.</span>
+
+zet@fuck-GFW ~ <span class="nv">$mkdir</span> -v glibc/source/code/you/want/download
+zet@fuck-GFW ~ <span class="nv">$cd</span> glibc/source/code/you/want/download
+zet@fuck-GFW ~ <span class="nv">$apt</span>-get <span class="nb">source </span>libc6
+
+</code></pre>
+</div>
+
+<p>After this you can see a directory named: eglibc-x.x which contans the Glibc
+source.</p>
+
+<p>Firt we must into gdb command environmet. After the gcc compile and output the 
+binary and we need the binary has a Program Header: INTERP:</p>
+
+<div class="language-bash highlighter-rouge"><pre class="highlight"><code>zet@fuck-GFW ~ <span class="nv">$readelf</span> -l hello_world | grep INTERP
+  INTERP         0x0000000000000238 0x0000000000400238 0x0000000000400238
+
+</code></pre>
+</div>
+<p>The simplest way is let the test code calling shared library. Well the most 
+convenient method just calling the standard libc.</p>
+
+<p>So write this simple test code.</p>
+
+<div class="language-vim highlighter-rouge"><pre class="highlight"><code><span class="sr">/* hello_world.c */</span>
+
+#include <span class="p">&lt;</span>stdio<span class="p">.</span><span class="k">h</span><span class="p">&gt;</span>
+
+int main <span class="p">()</span> <span class="p">{</span>
+        puts<span class="p">(</span><span class="s2">"hello, world\n"</span><span class="p">)</span>;
+<span class="p">}</span>
+
+</code></pre>
+</div>
+
+<p>Everything is ok, Now we need the gdb konw where is the debug information and
+where is the source code.</p>
+
+<p><strong>Specifying the debug information for gdb</strong></p>
+
+<blockquote>
+  <p>set debug-file-directory directories</p>
+</blockquote>
+
+<blockquote>
+  <p>Set the directories which gdb searches for separate debugging information files
+to directory. Multiple path components can be set concatenating them by a path 
+separator.</p>
+
+  <p>–<a href="https://sourceware.org/gdb/onlinedocs/gdb/Separate-Debug-Files.html#index-set-debug_002dfile_002ddirectory-1237">gdb official manual</a></p>
+</blockquote>
+
+<div class="language-bash highlighter-rouge"><pre class="highlight"><code>zet@fuck-GFW ~ <span class="nv">$gcc</span> -g -o hello_world hello_world.c
+zet@fuck-GFW ~ <span class="nv">$gdb</span> ./hello_world
+<span class="o">(</span>gdb<span class="o">)</span> b main
+<span class="o">(</span>gdb<span class="o">)</span> <span class="nb">set </span>debug-file-directory /usr/lib/debug/
+
+<span class="c">#Force the gdb reload the debug information</span>
+<span class="o">(</span>gdb<span class="o">)</span> r
+<span class="c">#Continue this, until you can see gdb jump through the PLT table to the Glibc </span>
+<span class="c">#source</span>
+<span class="o">(</span>gdb<span class="o">)</span> si
+
+<span class="c">#Gdb command window output like this(I use the gdb tui mode):</span>
+&gt;|0x7ffff7df04a8 &lt;_dl_runtime_resolve+8 at ../sysdeps/x86_64/dl-trampoline.S:37&gt;  mov    %rcx,0x8<span class="o">(</span>%rsp<span class="o">)</span>                                            |
+ |0x7ffff7df04ad &lt;_dl_runtime_resolve+13 at ../sysdeps/x86_64/dl-trampoline.S:38&gt; mov    %rdx,0x10<span class="o">(</span>%rsp<span class="o">)</span>                                           |
+ |0x7ffff7df04b2 &lt;_dl_runtime_resolve+18 at ../sysdeps/x86_64/dl-trampoline.S:39&gt; mov    %rsi,0x18<span class="o">(</span>%rsp<span class="o">)</span>                                           |
+ |0x7ffff7df04b7 &lt;_dl_runtime_resolve+23 at ../sysdeps/x86_64/dl-trampoline.S:40&gt; mov    %rdi,0x20<span class="o">(</span>%rsp<span class="o">)</span>                                           |
+ |0x7ffff7df04bc &lt;_dl_runtime_resolve+28 at ../sysdeps/x86_64/dl-trampoline.S:41&gt; mov    %r8,0x28<span class="o">(</span>%rsp<span class="o">)</span>                                            |
+ |0x7ffff7df04c1 &lt;_dl_runtime_resolve+33 at ../sysdeps/x86_64/dl-trampoline.S:42&gt; mov    %r9,0x30<span class="o">(</span>%rsp<span class="o">)</span>                                            |
+ |0x7ffff7df04c6 &lt;_dl_runtime_resolve+38 at ../sysdeps/x86_64/dl-trampoline.S:43&gt; mov    0x40<span class="o">(</span>%rsp<span class="o">)</span>,%rsi                                           |
+ |0x7ffff7df04cb &lt;_dl_runtime_resolve+43 at ../sysdeps/x86_6yy4/dl-trampoline.S:44&gt; mov    0x38<span class="o">(</span>%rsp<span class="o">)</span>,%rdi                                         |
+ |0x7ffff7df04d0 &lt;_dl_runtime_resolve+48 at ../sysdeps/x86_64/dl-trampoline.S:45&gt; callq  0x7ffff7de9430 &lt;_dl_fixup at ../elf/dl-runtime.c:66&gt;      |
+
+</code></pre>
+</div>
+
+<p><strong>Specifying the source code for gdb</strong></p>
+
+<blockquote>
+  <p>directory dirname …</p>
+</blockquote>
+
+<blockquote>
+  <p>dir dirname …</p>
+</blockquote>
+
+<blockquote>
+  <p>Add directory dirname to the front of the source path. Several directory names
+may be given to this command, separated by ‘:’ (‘;’ on MS-DOS and MS-Windows, 
+where ‘:’ usually appears as part of absolute file names) or whitespace. You may
+specify a directory that is already in the source path; this moves it forward,
+so gdb searches it sooner.</p>
+</blockquote>
+
+<blockquote>
+  <p>You can use the string ‘$cdir’ to refer to the compilation directory (if one is
+recorded), and ‘$cwd’ to refer to the current working directory. ‘$cwd’ is not 
+the same as ‘.’—the former tracks the current working directory as it changes 
+during your gdb session, while the latter is immediately expanded to the current
+directory at the time you add an entry to the source path.</p>
+
+  <p>–<a href="https://sourceware.org/gdb/onlinedocs/gdb/Source-Path.html#index-dir-550">gdb official manual</a></p>
+</blockquote>
+
+<p>Pay attention to the above output list after we have force gdb reload the debug
+information. The gdb is first into parent directory and then <em>sysdeps/</em>. So
+specify the source code directory for gdb must follow this rules.</p>
+
+<div class="language-bash highlighter-rouge"><pre class="highlight"><code> |0x7ffff7df04c1 &lt;_dl_runtime_resolve+33 at ../sysdeps/x86_64/dl-trampoline.S:42&gt; mov    %r9,0x30<span class="o">(</span>%rsp<span class="o">)</span>                                                      |
+
+</code></pre>
+</div>
+
+<pre><code class="language-gdb">#Any sub-directory of eglibc-x.x is fine.
+(gdb) dir /glibc/source/code/you/want/download/eglibc-x.x/elf
+#Add the break point of entry point of dynamic-linker.
+#Alternative you can create a watch point of GOT item for the called shared
+# library function of the test binary.
+(gdb) b _start
+(gdb) r
+
+</code></pre>
+<p>Until now, you must can debug the dynamic-linker of Glibc.</p>
+
+<h2 id="epilogue">03 Epilogue</h2>
+
+<p>All of the content of this article described is only my persional experiment, 
+but depend on my analysis I think you can deal with your maybe special problem.</p>
+
+<p>Good luck.</p>
+
+<p><em>live long and prosper</em></p>
+
+
+        </section>
+    </article>
+</main>
+
+    <footer class="site-footer clearfix">
+        <section class="copyright"><a href="https://github.com/TryGhost/Casper">Ghost Foundation</a> © 2015 <a class="icon-twitter" href="https://twitter.com/embedsec"></a> <a class="icon-feed" href="http://embedsec.systems/feed.xml"></a></section>
+</footer>
+
+    <script src="/js/jquery.min.js"></script>
+<script type="text/javascript" src="/js/jquery.fitvids.js"></script>
+<script type="text/javascript" src="/js/index.js"></script>
+
+</body>
+</html>

@@ -8,6 +8,21 @@
 		
 			
 			<item>
+				<title>Build debug environment for the dynamic linker of Glibc</title>
+				
+					<description>&lt;h1 id=&quot;build-debug-environment-for-the-dynamic-linker-of-glibc&quot;&gt;Build debug environment for the dynamic linker of Glibc&lt;/h1&gt;
+&lt;p&gt;@(Toolchains)[Glibc|dynamic-linker|gdb|gcc]&lt;/p&gt;
+
+</description>
+				
+				<pubDate>Thu, 25 Aug 2016 00:00:00 +0800</pubDate>
+				<link>http://embedsec.systems/toolchains/2016/08/25/build_debug_environment_for_dynamic_linker_of_glibc.html</link>
+				<guid isPermaLink="true">http://embedsec.systems/toolchains/2016/08/25/build_debug_environment_for_dynamic_linker_of_glibc.html</guid>
+			</item>
+			
+		
+			
+			<item>
 				<title>(A/T/KT) - Sanitized GNU/Linux: a new way of bug hunter in FLOSS Community</title>
 				
 					<description>&lt;p&gt;Most of Gentoo installation STEPS in this article are &lt;strong&gt;COPY&lt;/strong&gt;   from &lt;a href=&quot;https://wiki.gentoo.org/wiki/Handbook:AMD64&quot;&gt;Gentoo Handbook&lt;/a&gt;[1]&lt;/p&gt;
