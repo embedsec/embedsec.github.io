@@ -292,8 +292,9 @@ decode_cmdline_option (const char **argv, unsigned int lang_mask,
 <strong>spec</strong>配置的语法定义于
 [gcc manual: 3.19 Specifying Subprocesses and the Switches to Pass to Them]
 (https://gcc.gnu.org/onlinedocs/gcc/Spec-Files.html),
-与本文涉及到的比较重要的语法如下:
-&gt;%a
+与本文涉及到的比较重要的语法如下:</p>
+<blockquote>
+  <p>%a
 处理as的相关调用. 默认的spec文件叫: asm
 %A
 处理as相关的调用,默认的spec文件是: asm_final
@@ -305,6 +306,7 @@ decode_cmdline_option (const char **argv, unsigned int lang_mask,
 对X进行替换操作,当选项-S给出时
 %{!S:X}
 对X进行替换操作,当选项-S没有给出时</p>
+</blockquote>
 
 <p><em>gcc driver</em>对可以调用的子工具的存储在一个统一的数组里.其中<em>compiler-&gt;spec</em>就是
 相应工具默认的调用参数.</p>

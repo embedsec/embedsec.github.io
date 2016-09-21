@@ -8,6 +8,22 @@
 		
 			
 			<item>
+				<title>shared library wrinkle</title>
+				
+					<description>&lt;h1 id=&quot;shared-library&quot;&gt;shared library怎样实现对象的单一定义原则&lt;/h1&gt;
+&lt;p&gt;@(ELF | linker | runtime)[shared library]
+        –&lt;a href=&quot;https://github.com/fanfuqiang&quot;&gt;zet&lt;/a&gt;&lt;/p&gt;
+
+</description>
+				
+				<pubDate>Wed, 21 Sep 2016 00:00:00 +0800</pubDate>
+				<link>http://embedsec.systems/zh/gnu/linux-security/2016/09/21/linker-shared-library-wrinkle.html</link>
+				<guid isPermaLink="true">http://embedsec.systems/zh/gnu/linux-security/2016/09/21/linker-shared-library-wrinkle.html</guid>
+			</item>
+			
+		
+			
+			<item>
 				<title>PIC and PIE analysis</title>
 				
 					<description>&lt;p&gt;#Position Independent Code(PIC) and Position Independent Executable(PIE)
