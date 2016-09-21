@@ -41,7 +41,7 @@
         <h2 class="post-title"><a href="http://embedsec.systems/zh/gnu/linux-security/2016/09/21/linker-shared-library-wrinkle.html">shared library wrinkle</a></h2>
     </header>
     <section class="post-excerpt">
-        <p><a class="read-more" href="http://embedsec.systems/zh/gnu/linux-security/2016/09/21/linker-shared-library-wrinkle.html">&raquo;</a></p>
+        <p>前段时间在查看shared library的一段汇编代码的时候发现一个非常有趣的reloc type: R_386_COPY,这个类型出现在当一个main executable引用shared library里面导出的globals的值时.然后又看到LLVM/lld里面的R_386_COPY的实现path在代码*lld/trunk/ELF/Target.cpp*: 203行有一个赋值,R_386_COPY的核心实现就是这么简 单.但是背后涉及到的细节并没有这么简单.<a class="read-more" href="http://embedsec.systems/zh/gnu/linux-security/2016/09/21/linker-shared-library-wrinkle.html">&raquo;</a></p>
     </section>
     <footer class="post-meta">
         <a href=""></a> On GNULinux-Security
