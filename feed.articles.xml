@@ -8,6 +8,20 @@
 		
 			
 			<item>
+				<title>Neutralize ME firmware on SandyBridge and IvyBridge platforms</title>
+				
+					<description>&lt;h2 id=&quot;me-management-engine&quot;&gt;00 ME: Management Engine&lt;/h2&gt;
+
+</description>
+				
+				<pubDate>Thu, 17 Nov 2016 00:00:00 +0800</pubDate>
+				<link>http://embedsec.systems/firmware/2016/11/17/neutralize_ME_firmware_on_sandybridge_and_ivybridge.html</link>
+				<guid isPermaLink="true">http://embedsec.systems/firmware/2016/11/17/neutralize_ME_firmware_on_sandybridge_and_ivybridge.html</guid>
+			</item>
+			
+		
+			
+			<item>
 				<title>Build debug environment for the dynamic linker of Glibc</title>
 				
 					<description>&lt;h1 id=&quot;build-debug-environment-for-the-dynamic-linker-of-glibc&quot;&gt;Build debug environment for the dynamic linker of Glibc&lt;/h1&gt;
