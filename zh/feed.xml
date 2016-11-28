@@ -7,6 +7,36 @@
 		<atom:link href="http://embedsec.systems/zh/feed.xml" rel="self" type="application/rss+xml" />
 		
 			<item>
+				<title>canary分析</title>
+				        
+				
+					<description>&lt;h1 id=&quot;canary-analysis&quot;&gt;canary analysis&lt;/h1&gt;
+&lt;p&gt;@(GCC | Glibc | kernel)[GNU System-Security]
+        –&lt;a href=&quot;https://github.com/fanfuqiang&quot;&gt;zet&lt;/a&gt;&lt;/p&gt;
+
+</description>
+				
+				<pubDate>Sun, 27 Nov 2016 00:00:00 +0800</pubDate>
+				<link>http://embedsec.systems/zh/2016/11/27/canary-analysis.html</link>
+				<guid isPermaLink="true">http://embedsec.systems/zh/2016/11/27/canary-analysis.html</guid>
+			</item>
+		
+			<item>
+				<title>RELRO分析</title>
+				        
+				
+					<description>&lt;h1 id=&quot;relrorelocation-read-only&quot;&gt;RELRO(Relocation Read Only)&lt;/h1&gt;
+&lt;p&gt;@(ELF | GCC | linker | runtime)[GNU System-Security]
+        –&lt;a href=&quot;https://github.com/fanfuqiang&quot;&gt;zet&lt;/a&gt;&lt;/p&gt;
+
+</description>
+				
+				<pubDate>Fri, 25 Nov 2016 00:00:00 +0800</pubDate>
+				<link>http://embedsec.systems/zh/2016/11/25/RelRO-analysis.html</link>
+				<guid isPermaLink="true">http://embedsec.systems/zh/2016/11/25/RelRO-analysis.html</guid>
+			</item>
+		
+			<item>
 				<title>shared library wrinkle</title>
 				        
 				

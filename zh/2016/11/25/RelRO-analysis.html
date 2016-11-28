@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+    <title>RELRO分析</title>
+    <meta name="description" content="">
+
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="shortcut icon" href="/favicon.ico">
+
+    <link rel="stylesheet" type="text/css" href="/css/screen.css">
+    <link rel="stylesheet" type="text/css" href="//fonts.useso.com/css?family=Merriweather:300,700,700italic,300italic|Open+Sans:700,400">
+
+    <link rel="canonical" href="">
+
+    <style id="fit-vids-style">.fluid-width-video-wrapper{width:100%;position:relative;padding:0;}.fluid-width-video-wrapper iframe,.fluid-width-video-wrapper object,.fluid-width-video-wrapper embed {position:absolute;top:0;left:0;width:100%;height:100%;}</style>
+</head>
+
+<body class="home-template">
+    <header class="main-header post-head no-cover">
+    <nav class="main-nav clearfix">
+        <a class="back-button icon-arrow-left" href="http://embedsec.systems/zh">Home</a>
+        
+    </nav>
+</header>
+
+    <main class="content" role="main">
+    <article class="post">
+
+        <header class="post-header">
+            <h1 class="post-title">RELRO分析</h1>
+            <section class="post-meta">
+                <a></a>
+                <time class="post-date" datetime="2016-11-25">25 November 2016</time>
+                <a href="mailto:zet@tya.email">zet@tya.email</a>
+            </section>
+        </header>
+
+        <section class="post-content">
+            <h1 id="relrorelocation-read-only">RELRO(Relocation Read Only)</h1>
+<p>@(ELF | GCC | linker | runtime)[GNU System-Security]
+        –<a href="https://github.com/fanfuqiang">zet</a></p>
+
+<h2 id="section">00 导引</h2>
+
+<p>在Linux系统安全领域数据可以写的存储区就会是攻击的目标,尤其是存储函数指针的区域.
+所以在安全防护的角度来说尽量减少可写的存储区域对安全会有极大的好处.</p>
+
+<p>GCC, GNU linker以及Glibc-dynamic linker一起配合实现了一种叫做relro的技术: read 
+only relocation.大概实现就是由linker指定binary的一块经过dynamic linker处理过
+relocation之后的区域为只读.</p>
+
+<p>relro是一种比较古老的技术,至少2008年之前就已经进入了upstream.所以本文涉及到的GNU
+toolchains源代码版本来说选择非常自由,我使用的是我熟悉的版本:
+GCC-4.8.2 &amp; binutils/ld-2.26 &amp; eglibc-2.19</p>
+
+<h2 id="section-1">01 细节</h2>
+
+<p>按照安全防护的角度应该尽量使存储区域只读,一般情况下代码里的常量或者经过编译器的
+分析pass而认为是常量的数据可以直接放入binary里的存储只读区.</p>
+
+<p>还有就是const变量,这种变量经过dynamic-linker的重定位处理之后可以位于只读存储区.</p>
+
+<h3 id="gcc">gcc</h3>
+
+<p>gcc在遇到这种变量的时候就会相应将其置于SECTION .data.rel.ro或者
+.data.rel.ro.local 里.评判的关键就是初始化数据是不是external linkage.</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>gcc-src/gcc/targhooks.c
+</code></pre>
+</div>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>#line 947
+/* By default, if flag_pic is true, then neither local nor global relocs
+   should be placed in readonly memory.  */
+
+int
+default_reloc_rw_mask(void)
+{
+  return flag_pic ? 3 : 0;
+}
+
+</code></pre>
+</div>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>
+// 调用gcc的时候要使用参数-fpic
+//
+// global是external linkage
+int *global;
+// const变量global_pointer位于section .data.rel.ro
+int *const global_pointer = &amp;global;
+
+// var是no linkage
+static int *var;
+//  const变量pointer位于section .data.rel.ro.local
+int *const pointer = &amp;var;
+
+</code></pre>
+</div>
+
+<p>在gcc中这部分的实现代码的调用栈如下:</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>#0  categorize_decl_for_section () at ../gcc/varasm.c:6249
+#1  default_elf_select_section () at ../gcc/varasm.c:6304
+#2  x86_64_elf_select_section () at ../gcc/config/i386/i386.c:4688
+#3  get_variable_section () at ../gcc/varasm.c:1046
+#4  assemble_variable () at ../gcc/varasm.c:2013
+#5  varpool_assemble_decl () at ../gcc/varpool.c:313
+#6  output_in_order () at ../gcc/cgraphunit.c:1837
+#7  compile () at ../gcc/cgraphunit.c:2037
+#8  finalize_compilation_unit () at ../gcc/cgraphunit.c:2119
+#9  c_write_global_declarations () at ../gcc/c/c-decl.c:10118
+#10 compile_file () at ../gcc/toplev.c:557
+#11 do_compile () at ../gcc/toplev.c:1864
+#12 toplev_main (argc, argv) at ../gcc/toplev.c:1940
+#13 main (argc, argv) at ../gcc/main.c:36
+
+</code></pre>
+</div>
+
+<h3 id="ld">ld</h3>
+
+<p>linker里的实现跟主要跟一个参数有关系: -z now.这个参数可以在调用gcc时加入由之传给
+linker或者直接调用linker时加入.这里还需要提一下另外一个参数: -z relro,不过据我所
+知这个参数对relro的基本没有什么影响.因为relro基本上已经是默认的实现方式.</p>
+
+<p>当使用-z now时,在linker里的处理除了对gcc生成的.data.rel.ro/.data.rel.ro.local 
+section之外还有对正常的.got.plt section的处理,也及尽量不使用lazy relocation.与
+-z now相反的另外一个参数是-z lazy.</p>
+
+<p>也就是linker对relro的操作分为两个部分: 处理.got.plt和处理
+.data.rel.ro/.data.rel.ro.local.</p>
+
+<ul>
+  <li><strong>处理.got.plt</strong></li>
+</ul>
+
+<p>dynamic需要通过PLT(Procedure Linkeage Table)来进行.加参数-z now之后会binary使用
+非lazy的方式来生成.got.plt.下面给出lazy与非lazy的PLT.</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>
+// lazy模式,这里就是正常的dynamic runtime resolution.
+.section .plt
+
+.PLTn:
+        jmp     *name_in_GOT
+        pushl   $offset  
+        jmp     .PLT0@PC
+
+// no-lazy模式,glibc/dynamic-linker会处理重定位也就是在name_in_GOT处写入真实的地
+// 址,然后将name_in_GOT所在的section设置为只读.
+.section .plt.got
+
+.PLTn:
+        jmp     *name_in_GOT
+
+</code></pre>
+</div>
+
+<p>这部分的源代码对于i386来说位于:</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>binutils-2.26/bfd/elf32-i386.c/elf_i386_allocate_dynrelocs()
+</code></pre>
+</div>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>#line 2393
+      if ((info-&gt;flags &amp; DF_BIND_NOW) &amp;&amp; !h-&gt;pointer_equality_needed)
+	{
+	  /* Don't use the regular PLT for DF_BIND_NOW. */
+	  h-&gt;plt.offset = (bfd_vma) -1;
+
+	  /* Use the GOT PLT.  */
+	  h-&gt;got.refcount = 1;
+	  eh-&gt;plt_got.refcount = 1;
+	}
+
+</code></pre>
+</div>
+
+<p>上面的代码是生成no-lazy模式代码的关键步骤.</p>
+
+<ul>
+  <li><strong>处理.data.rel.ro/.data.rel.ro.local</strong></li>
+</ul>
+
+<p>这部分的处理在ld里面其实非常隐晦,但是如果查看代码非常简单,关键在linker script里:</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>// 忽略部分内容
+  ...
+
+  .rel.dyn :
+    {
+      *(.rel.data.rel.ro .rel.data.rel.ro.* .rel.gnu.linkonce.d.rel.ro.*)
+    }
+  . = DATA_SEGMENT_ALIGN (CONSTANT (MAXPAGESIZE), CONSTANT (COMMONPAGESIZE));
+  /* Exception handling  */
+  .eh_frame       : ONLY_IF_RW { KEEP (*(.eh_frame)) *(.eh_frame.*) }
+  .gnu_extab      : ONLY_IF_RW { *(.gnu_extab) }
+  .gcc_except_table   : ONLY_IF_RW { *(.gcc_except_table .gcc_except_table.*) }
+  .exception_ranges   : ONLY_IF_RW { *(.exception_ranges .exception_ranges*) }
+
+  // 忽略部分内容
+  ...
+
+  .data.rel.ro : { *(.data.rel.ro.local* .gnu.linkonce.d.rel.ro.local.*) *(.data.rel.ro .data.rel.ro.* .gnu.linkonce.d.rel.ro.*) }
+  .dynamic        : { *(.dynamic) }
+  .got            : { *(.got) *(.igot) }
+  . = DATA_SEGMENT_RELRO_END (SIZEOF (.got.plt) &gt;= 12 ? 12 : 0, .);
+  
+</code></pre>
+</div>
+
+<p>.rel.dyn是生成的binary的section,’{/}’扩住的部分是输入文件的section.也就是后面的
+section进入前面的section.</p>
+
+<p>而根据linker script的处理规则,.rel.dyn也要进入类型为PT_GNU_RELRO的segment的.</p>
+
+<h3 id="glibcdynamic-linker">glibc/dynamic-linker</h3>
+
+<p>dynaic形式的executable运行时是要新将控制权由kernel交给dynamic-linker然后
+dynamic-linker处理完初始化和重定位工作之后再将控制权交给真实的executable入口也就
+是一般情况下的: main.</p>
+
+<p>dynamic-linker会解析executable的segment table当遇到PT_GNU_RELRO的时候记录其起点
+地址和长度.</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>eglibc-2.19/elf/rtld.c/dl_main()
+</code></pre>
+</div>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>#line 1262
+      case PT_GNU_RELRO:
+	main_map-&gt;l_relro_addr = ph-&gt;p_vaddr;
+	main_map-&gt;l_relro_size = ph-&gt;p_memsz;
+	break;
+ 
+</code></pre>
+</div>
+
+<p>然后dl_main会在将控制权交给executable的main之前调用其他函数设置存储区的只读属性.</p>
+
+<p>代码的调用栈如下:</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>#0  _dl_protect_relro () at dl-reloc.c:322
+#1  _dl_relocate_object () at dl-reloc.c:316
+#2  dl_main () at rtld.c:2200
+#3  _dl_sysdep_start () at ../elf/dl-sysdep.c:249
+#4  _dl_start_final () at rtld.c:331
+#5  _dl_start () at rtld.c:557
+
+</code></pre>
+</div>
+<p>也就是最后做只读属性的函数是_dl_protect_relro().调用接口函数__mprotect()来进行.</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>void internal_function
+_dl_protect_relro (struct link_map *l)
+{
+  ElfW(Addr) start = ((l-&gt;l_addr + l-&gt;l_relro_addr)
+		      &amp; ~(GLRO(dl_pagesize) - 1));
+  ElfW(Addr) end = ((l-&gt;l_addr + l-&gt;l_relro_addr + l-&gt;l_relro_size)
+		    &amp; ~(GLRO(dl_pagesize) - 1));
+
+  if (start != end
+      &amp;&amp; __mprotect ((void *) start, end - start, PROT_READ) &lt; 0)
+    {
+      static const char errstring[] = N_("\
+cannot apply additional memory protection after relocation");
+      _dl_signal_error (errno, l-&gt;l_name, NULL, errstring);
+    }
+}
+
+</code></pre>
+</div>
+
+<p>经过GNU toolchiains的这些工作之后executable将会得到一个最大范围的不可写的存储区.</p>
+
+<h2 id="section-2">02 结论</h2>
+
+<p>正如文章最开始所说有数据可写属性的存储区就会成为攻击者的目标,relro这项技术通过
+gcc/linker/glibc dynamic-linker的协作,最大程度地减少可写存储区的大小,但是如果使
+用了-z now参数,正如文章的分析会使用no-lazy的模式来生成binary,这样就会导致
+dynamic-linker在将控制权交给executable之前做更多的重定位工作,会拖慢启动速度.但是
+会将只读存储区更大化.</p>
+
+<p><em>live long and prosper.</em></p>
+
+        </section>
+    </article>
+</main>
+
+    <footer class="site-footer clearfix">
+        <section class="copyright"><a href="https://github.com/TryGhost/Casper">Ghost Foundation</a> © 2015  <a class="icon-twitter" href="https://twitter.com/embedsec"></a><a class="icon-feed" href="http://embedsec.systems/zh/feed.xml"></a></section>
+</footer>
+
+    <script src="/js/jquery.min.js"></script>
+<script type="text/javascript" src="/js/jquery.fitvids.js"></script>
+<script type="text/javascript" src="/js/index.js"></script>
+
+</body>
+</html>
