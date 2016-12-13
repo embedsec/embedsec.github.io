@@ -8,6 +8,20 @@
 		
 			
 			<item>
+				<title>Linux kernel mitigation checklist</title>
+				
+					<description>&lt;p&gt;By citypw@gmail.com&lt;/p&gt;
+
+</description>
+				
+				<pubDate>Thu, 17 Nov 2016 00:00:00 +0800</pubDate>
+				<link>http://embedsec.systems/system-security/2016/11/17/kernel_mitigation_checklist.html</link>
+				<guid isPermaLink="true">http://embedsec.systems/system-security/2016/11/17/kernel_mitigation_checklist.html</guid>
+			</item>
+			
+		
+			
+			<item>
 				<title>Neutralize ME firmware on SandyBridge and IvyBridge platforms</title>
 				
 					<description>&lt;h2 id=&quot;me-management-engine&quot;&gt;00 ME: Management Engine&lt;/h2&gt;
