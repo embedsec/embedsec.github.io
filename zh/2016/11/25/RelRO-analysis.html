@@ -45,7 +45,7 @@
 <p>@(ELF | GCC | linker | runtime)[GNU System-Security]
         –<a href="https://github.com/fanfuqiang">zet</a></p>
 
-<h2 id="section">00 导引</h2>
+<h2 id="00-导引">00 导引</h2>
 
 <p>在Linux系统安全领域数据可以写的存储区就会是攻击的目标,尤其是存储函数指针的区域.
 所以在安全防护的角度来说尽量减少可写的存储区域对安全会有极大的好处.</p>
@@ -58,7 +58,7 @@ relocation之后的区域为只读.</p>
 toolchains源代码版本来说选择非常自由,我使用的是我熟悉的版本:
 GCC-4.8.2 &amp; binutils/ld-2.26 &amp; eglibc-2.19</p>
 
-<h2 id="section-1">01 细节</h2>
+<h2 id="01-细节">01 细节</h2>
 
 <p>按照安全防护的角度应该尽量使存储区域只读,一般情况下代码里的常量或者经过编译器的
 分析pass而认为是常量的数据可以直接放入binary里的存储只读区.</p>
@@ -279,7 +279,7 @@ cannot apply additional memory protection after relocation");
 
 <p>经过GNU toolchiains的这些工作之后executable将会得到一个最大范围的不可写的存储区.</p>
 
-<h2 id="section-2">02 结论</h2>
+<h2 id="02-结论">02 结论</h2>
 
 <p>正如文章最开始所说有数据可写属性的存储区就会成为攻击者的目标,relro这项技术通过
 gcc/linker/glibc dynamic-linker的协作,最大程度地减少可写存储区的大小,但是如果使

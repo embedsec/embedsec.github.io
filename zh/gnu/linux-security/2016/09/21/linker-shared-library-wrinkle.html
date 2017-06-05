@@ -41,11 +41,11 @@
         </header>
 
         <section class="post-content">
-            <h1 id="shared-library">shared library怎样实现对象的单一定义原则</h1>
+            <h1 id="shared-library怎样实现对象的单一定义原则">shared library怎样实现对象的单一定义原则</h1>
 <p>@(ELF | linker | runtime)[shared library]
         –<a href="https://github.com/fanfuqiang">zet</a></p>
 
-<h2 id="section">00 导引</h2>
+<h2 id="00-导引">00 导引</h2>
 
 <p>前段时间在查看shared library的一段汇编代码的时候发现一个非常有趣的reloc type: 
 R_386_COPY,这个类型出现在当一个main executable引用shared library里面导出的
@@ -68,7 +68,7 @@ globals的值时.然后又看到LLVM/lld里面的R_386_COPY的实现<a href="htt
 <p>本文的描述将围绕这两个问题来进行.这两个问题的解决的实现代码位于glibc,所以源代码
 的也来自于glibc.对于如何搭建glibc调试环境详细见我的前一篇<a href="http://embedsec.systems/toolchains/2016/08/25/build_debug_environment_for_dynamic_linker_of_glibc.html">文章</a>.</p>
 
-<h2 id="section-1">01 引申</h2>
+<h2 id="01-引申">01 引申</h2>
 
 <p>根据<em>导引</em>部分给出的问题描述,其中一个很核心的问题是: 当execuatable和library取另
 外的shared library里的函数地址的时候,在shared library里,因为函数的实际地址只有运
@@ -87,7 +87,7 @@ its beginning) or function
 –[ISO C11 standard]</p>
 </blockquote>
 
-<h2 id="section-2">02 示例</h2>
+<h2 id="02-示例">02 示例</h2>
 
 <p>本文所涉及到的测试代码如下(为了缩短篇幅,删去了一些extern声明代码):</p>
 
@@ -182,7 +182,7 @@ gcc -m32 -g -o main main.c ./liba.so ./libb.so
 </code></pre>
 </div>
 
-<h2 id="section-3">03 问题展开</h2>
+<h2 id="03-问题展开">03 问题展开</h2>
 
 <p>上面的测试代码是由名字为main的测试binary来驱动的.</p>
 
@@ -467,7 +467,7 @@ offset,另外一个就是dynamic linker做初始化工作时写入的_GLOBAL_OFF
 <p><em>_dl_runtime_reslove处理的是运行时对于.plt及其相关的sections的重定位并不在本文的
 描述范围</em></p>
 
-<h2 id="glibcdynamic-linker">04 Glibc/dynamic-linker的解决方案</h2>
+<h2 id="04-glibcdynamic-linker的解决方案">04 Glibc/dynamic-linker的解决方案</h2>
 
 <p><em>下面的描述将会以dl指代glibc/dynamic-linker</em>
 其实在本文最开始提出的两个问题glibc的解决及其实现代码,位于glibc/dynamic-linker在
@@ -1242,7 +1242,7 @@ do_lookup_x (const char *undef_name, uint_fast32_t new_hash,
 <p>根据上面的代码分析及其代码里添加的注释,应该解释清楚了本文最开始提出的两个问题,其
 实核心就是symbol查找表的建立和检查过程.</p>
 
-<h2 id="section-4">05 总结</h2>
+<h2 id="05-总结">05 总结</h2>
 
 <p>本文由两个问题的解决进而分析了glibc/dynamic-linker的bootstrap之后到控制权交由
 executable之前的最重要的dl的代码,本文分析的两个问题基本上的dl实现里最trick

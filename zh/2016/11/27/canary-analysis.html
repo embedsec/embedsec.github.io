@@ -45,7 +45,7 @@
 <p>@(GCC | Glibc | kernel)[GNU System-Security]
         –<a href="https://github.com/fanfuqiang">zet</a></p>
 
-<h2 id="section">00 导引</h2>
+<h2 id="00-导引">00 导引</h2>
 
 <p>由于stack overflow而引发的攻击非常普遍也非常古老,相应地一种叫做canary的
 mitigation技术很早就出现在gcc/glibc里,直到现在也作为系统安全的第一道防线存在.</p>
@@ -59,7 +59,7 @@ overflow是否发生.</p>
 保护范围.因为canary的出现的很早,所以本文涉及到的GNU toolchains源代码版本来说选择
 非常自由,我使用的是我熟悉的版本: GCC-4.8.2 &amp; eglibc-2.19 &amp; linux-4.8.</p>
 
-<h2 id="section-1">01 示例</h2>
+<h2 id="01-示例">01 示例</h2>
 
 <p>在gcc的调用参数里有以下跟canary有关系:</p>
 
@@ -157,7 +157,7 @@ int main () {
 
 <p>上面的分析可以清楚地看出canary的原理,下面将分析canary在gcc和glibc里的实现细节.</p>
 
-<h2 id="section-2">02 细节</h2>
+<h2 id="02-细节">02 细节</h2>
 
 <p>canary的实现分为两部分,gcc编译时选择canary的插入位置,以及生成含有canary的汇编代
 码,glibc产生实际的canary值,以及提供错误捕捉函数和报错函数.也就是gcc使用glibc提供
@@ -346,7 +346,7 @@ static inline void load_stack_canary_segment(void)1
 
 <p>到这里我们就基本上解释清楚了canary的这条代码线.</p>
 
-<h2 id="section-3">03 总结</h2>
+<h2 id="03-总结">03 总结</h2>
 
 <p>通过本文可以比较清楚地知道canary的值的流向,kernel初始化了跟TLS相关的寄存器gs,并
 且提供了canary这个随机值,glibc写入%gs:0x14这个保存随机值的位置并且提供变量定义和

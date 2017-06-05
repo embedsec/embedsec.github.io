@@ -43,7 +43,7 @@
         <section class="post-content">
             <p>By citypw@gmail.com</p>
 
-<h1 id="paxgrsecurity----kspp----aosp-kernel-linux-kernel-mitigation-checklist-dec-13-2016">PaX/Grsecurity –&gt; KSPP –&gt; AOSP kernel: Linux kernel mitigation checklist( Dec 13 2016)</h1>
+<h1 id="paxgrsecurity--kspp--aosp-kernel-linux-kernel-mitigation-checklist-dec-13-2016">PaX/Grsecurity –&gt; KSPP –&gt; AOSP kernel: Linux kernel mitigation checklist( Dec 13 2016)</h1>
 
 <p>We should treat security as a whole, just like the combination of PaX/Grsecurity features/code hardening build up a defense-in-depth solution for Linux kernel, which is a core infrastructre we are highly rely on. <a href="http://grsecurity.net/">PaX/Grsecurity</a> is a set of security hardening specific patch that brings the linux kernel security into another level. It’s a great value to make all FLOSS community getting benefit from it. <a href="http://kernsec.org/wiki/index.php/Kernel_Self_Protection_Project">KSPP( Kernel self protection project)</a> was started in Nov 2015 after <a href="http://www.washingtonpost.com/sf/business/2015/11/05/net-of-insecurity-the-kernel-of-the-argument/">a disclosure</a> about linux kernel security. This is the 1st time the public had chance to know that linux kernel security might endanger the mobile platform( Android) and IoT devices. KSSP has been trying to port features/code hardening from PaX/Grsecurity to Linux upstream. Bad guys wouldn’t like to see it happen, but it will, a part of it at least;-) KSPP is quite important to Android dev/user community,  because AOSP kernel security is highly rely on how KSPP goes. <a href="https://blog.torproject.org/blog/mission-improbable-hardening-android-security-and-privacy">Tor community started a secure Android ROM project</a> is called <a href="https://github.com/mikeperry-tor/mission-improbable/blob/master/README.md">Mission Improbable</a> based on CopperheadOS lately, which is a good starting point. KSPP matters to our security and privacy is inevitable. I’d like to see more features of PaX/Grsecurity lands in vanilla linux and AOSP kernel and more importantly, give PaX/Grsecurity the credits they deserved.</p>
 
@@ -73,7 +73,7 @@
   </li>
 </ul>
 
-<h2 id="gcc-pluginshttpslwnnetarticles691102"><a href="https://lwn.net/Articles/691102/">GCC plugins</a></h2>
+<h2 id="gcc-plugins"><a href="https://lwn.net/Articles/691102/">GCC plugins</a></h2>
 
 <ul>
   <li><a href="http://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/commit/?id=f716a85cd6045c994011268223706642cff7e485">GCC plugins infrastructure, CYC_COMPLEXITY, SANCOV</a>, merged in v4.8</li>
@@ -83,7 +83,7 @@
   <li><a href="https://grsecurity.net/rap_faq.php">PAX_RAP</a>, the strongest CFI implementation so far. The 1st public RAP version was merged in PaX/Grsecurity 4.5.x’s test patch. It’s x86_64 only for now. But it can be ported to other architectures. <a href="https://forums.grsecurity.net/viewtopic.php?f=7&amp;t=4490&amp;sid=160fe4e25b39c590fbc2aeae4c37415c">RAP might utilize the advantage of hardware based implementation</a>, such as Intel’s CET, ARMv8.3’s <a href="https://community.arm.com/groups/processors/blog/2016/10/27/armv8-a-architecture-2016-additions">pointer authentication</a>, etc.</li>
 </ul>
 
-<h2 id="post-init-read-only-memoryhttpslwnnetarticles666550-merged-in-v46"><a href="https://lwn.net/Articles/666550/">Post-init read-only memory</a>, merged in v4.6</h2>
+<h2 id="post-init-read-only-memory-merged-in-v46"><a href="https://lwn.net/Articles/666550/">Post-init read-only memory</a>, merged in v4.6</h2>
 
 <ul>
   <li><a href="http://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/commit/?id=88d8a7994e564d209d4b2583496631c2357d386b">arm64 vdso Mark vDSO code as read-only</a>, it’s also merged in AOSP kernel for 3.10/3.18/4.1/4.4.</li>
@@ -130,7 +130,7 @@
 <h2 id="ret2dir-protection">ret2dir protection</h2>
 <p>You don’t need to worry about <a href="http://citypw.blogspot.com/2016/09/notes-about-ret2dir-paxgrsecurity.html">ret2dir if you’re running PaX/Grsecurity w/wo KERNEXEC</a> on the most x86 systems. The orginal authors proposed a defensive solution is called XPFO( eXclusive Page Frame Ownership) and Juerg Haefliger is <a href="http://www.mail-archive.com/linux-kernel@vger.kernel.org/msg1264591.html">trying to make it</a> lands into upstream. W &amp; X memory is the cruial condition to physmap spraying. ret2dir is no longer a big threat to the <em>modern</em> kernel since <a href="http://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/commit/?id=9ccaf77cf05915f51231d158abfd5448aedde758">x86( v4.6)</a> and <a href="http://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/commit/?id=40982fd6b975de4a51ce5147bc1d698c3b075634">arm64( v4.9)</a> makes all kernel memory X^W. About AOSP kernel, plz see ##KERNEXEC</p>
 
-<h2 id="bpf-jithttpslwnnetarticles437981-hardening"><a href="https://lwn.net/Articles/437981/">BPF JIT</a> hardening</h2>
+<h2 id="bpf-jit-hardening"><a href="https://lwn.net/Articles/437981/">BPF JIT</a> hardening</h2>
 <p>This <a href="https://lwn.net/Articles/525609/">type of attack</a> is aginst variable-length instruction architecture specifically. This problem is almost a disaster in some <em>important</em> application( e.g: Adobe FLash) on Desktop/Mobile. Cu’z it’s more likely a RCE to be appeared. For GNU/Linux server, it’s still an attack vector that we should taking very serious.</p>
 
 <ul>
@@ -142,7 +142,7 @@
   </li>
 </ul>
 
-<h2 id="vmalloc-kernel-stackhttpslwnnetarticles692208"><a href="https://lwn.net/Articles/692208/">vmalloc kernel stack</a></h2>
+<h2 id="vmalloc-kernel-stack"><a href="https://lwn.net/Articles/692208/">vmalloc kernel stack</a></h2>
 <p>Jon Oberheide shared about <a href="https://jon.oberheide.org/blog/2010/11/29/exploiting-stack-overflows-in-the-linux-kernel/">kernel stack attack surfaces</a> and <a href="https://jon.oberheide.org/files/infiltrate12-thestackisback.pdf">kernel stack hijacking</a> is still useful to exploit Linux and Android kernel. PaX/Grsecurity moved thread_info off the kernel stack for x86 back in 2011. The GRKERNSEC_KSTACKOVERFLOW( there are some other features including moved thread_info off the stack) was forged in 2014 and the 1st support kernel version is v3.14. Andy Lutomirski( other contributors?) is <a href="http://www.mail-archive.com/linux-kernel@vger.kernel.org/msg1168875.html">trying to implement</a> the exact what GRKERNSEC_KSTACKOVERFLOW does and this feature merged in v4.9(x64-only) via:</p>
 
 <ul>
@@ -162,7 +162,7 @@
   <li><a href="http://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/commit/?id=ac496bf48d97f2503eaa353996a4dd5e4383eaf0">fork: Optimize task creation by caching two thread stacks per CPU if CONFIG_VMAP_STACK=y</a></li>
 </ul>
 
-<h2 id="grkernsecperfhardenhttpslwnnetarticles695978"><a href="https://lwn.net/Articles/695978/">GRKERNSEC_PERF_HARDEN</a></h2>
+<h2 id="grkernsec_perf_harden"><a href="https://lwn.net/Articles/695978/">GRKERNSEC_PERF_HARDEN</a></h2>
 <p>PERF is a fuc*ing serious attack surface. We can’t bear it running by default in production system. Ben Hutchings <a href="https://lkml.org/lkml/2016/1/11/587">proposed a patch</a> from PaX/Grsecurity to linux kernel but it rejected by kernel maintainer. Fortunately, Jeff Vander Stoep <a href="https://android-review.googlesource.com/#/c/234573/">merged it into AOSP kernel</a>.</p>
 
 <p>Write-up about KSPP:</p>

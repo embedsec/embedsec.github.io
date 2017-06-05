@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+    <title>使用Syzkaller&QEMU捕捉内核堆溢出Demo</title>
+    <meta name="description" content="">
+
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="shortcut icon" href="/favicon.ico">
+
+    <link rel="stylesheet" type="text/css" href="/css/screen.css">
+    <link rel="stylesheet" type="text/css" href="//fonts.useso.com/css?family=Merriweather:300,700,700italic,300italic|Open+Sans:700,400">
+
+    <link rel="canonical" href="">
+
+    <style id="fit-vids-style">.fluid-width-video-wrapper{width:100%;position:relative;padding:0;}.fluid-width-video-wrapper iframe,.fluid-width-video-wrapper object,.fluid-width-video-wrapper embed {position:absolute;top:0;left:0;width:100%;height:100%;}</style>
+</head>
+
+<body class="home-template">
+    <header class="main-header post-head no-cover">
+    <nav class="main-nav clearfix">
+        <a class="back-button icon-arrow-left" href="http://embedsec.systems/zh">Home</a>
+        
+    </nav>
+</header>
+
+    <main class="content" role="main">
+    <article class="post">
+
+        <header class="post-header">
+            <h1 class="post-title">使用Syzkaller&QEMU捕捉内核堆溢出Demo</h1>
+            <section class="post-meta">
+                <a>Bins</a>
+                <time class="post-date" datetime="2017-06-05">05 June 2017</time>
+                <a href="mailto:kpeng@tya.email, kaipeng94@gmail.com">kpeng@tya.email, kaipeng94@gmail.com</a>
+            </section>
+        </header>
+
+        <section class="post-content">
+            <p>by kaipeng94@gmail.com</p>
+
+<p>本文将演示使用Syzkaller联合QEMU触发一个内核溢出的bug。
+包括三个步骤：</p>
+<ul>
+  <li>在syzkaller中添加规则触发堆溢出</li>
+  <li>编译一个带有堆溢出模块的kernel</li>
+  <li>运行syzkaller&amp;QEMU捕捉内核堆溢出</li>
+</ul>
+
+<h2 id="在syzkaller中添加规则">在syzkaller中添加规则</h2>
+<p>syzkaller的规则文件写在$(SYZKALLER_SOURCE)/sys下的<em>.txt格式的文件中，通过过syz-exract在相同目录下生成</em>.const格式文件。最后，重新编译生成带有相应规则的syzkaller二进制可执行文件。</p>
+<h3 id="txt文件的语法">txt文件的语法</h3>
+<div class="highlighter-rouge"><pre class="highlight"><code>open$proc(file ptr[in, string["/proc/test"]], flags flags[proc_open_flags], mode flags[proc_open_mode]) fd
+...
+proc_open_flags = O_RDONLY, O_WRONLY, O_RDWR, O_APPEND, FASYNC, O_CLOEXEC, O_CREAT, O_DIRECT, O_DIRECTORY, O_EXCL, O_LARGEFILE, O_NOATIME, O_NOCTTY, O_NOFOLLOW, O_NONBLOCK, O_PATH, O_SYNC, O_TRUNC, \__O_TMPFILE
+proc_open_mode = S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
+</code></pre>
+</div>
+
+<p>每一个系统调用都会包含调用名和调用参数和返回值，调用名格式如下：
+<code class="highlighter-rouge">SyscallName$Type</code>
+$号前的syscallname是系统调用名，是内核提供的接口，在源码的$(SYZKALLER_SOURCE)/sys/sys.txt中有通用的调用的形式申明可以参考。$号后的type是指特定类型的系统调用。如上文的
+<code class="highlighter-rouge">open$proc</code>
+指的就是open这个类调用中proc这个具体的调用，这个名字是由规则编写者确定的，具体行为靠的是后面的参数去确定。参数的格式如下：
+<code class="highlighter-rouge">ArgumentName ArgumentType[Limit]</code>
+ArgumentName是指参数名，ArgumentType指的是参数类型，例如上述例子有string、flags等类型。[ ]号中的内容就是具体的类型的值，不指定的时候由syzkaller自动生成，若要指定须在后文指定，以上文为例：</p>
+<div class="highlighter-rouge"><pre class="highlight"><code>mode flags[proc_open_mode]
+proc_open_mode = ...
+</code></pre>
+</div>
+<p>也就是说flags类型的参数mode，将会在“proc_open_mode = …”中罗列的数值中取值。
+最后跟在函数后面的是函数的返回值，在例子中fd指的是文件描述符。</p>
+<ul>
+  <li>更多语法相关的信息请参考：https://github.com/google/syzkaller/tree/master/sys/README.md</li>
+</ul>
+
+<p>因为我们给的例子是通过/proc/test这个内核接口的写操作来触发堆溢出，因此我们需要控制的参数是open函数中的file参数为“/proc/test”即可，其他操作参考sys.txt即可。</p>
+
+<h3 id="重编译syzkaller">重编译syzkaller</h3>
+<p>进入syzkaller源码目录，运行：</p>
+<div class="highlighter-rouge"><pre class="highlight"><code>make clean
+make bin/syz-extract
+bin/syz-extract -arch amd64 -linux /PATH/TO/LINUX/SOURCE sys/YourRule.txt
+make all
+</code></pre>
+</div>
+<p>命令syz-extract中的-arch指的是运行机器的架构，-linux则是待测内核的编译目录。</p>
+<h3 id="拷贝重编译成功的二进制进虚机">拷贝重编译成功的二进制进虚机</h3>
+<p>运行虚机，执行以下命令：
+scp -P $(SSH_PORT) -i ~/.ssh/id_rsa -r syzkaller/bin root@127.0.0.1:/root/bin</p>
+
+<h2 id="带有堆溢出的内核模块">带有堆溢出的内核模块</h2>
+<p>我们需要编写一个带有堆溢出bug的内核模块，这个模块提供“/proc/test”接口供用户空间进行文件系统读写操作，实现函数通过fileoperations的函数指针关联：</p>
+<div class="highlighter-rouge"><pre class="highlight"><code>static struct file_operations a = {
+                                .open = proc_open,
+                                .read = proc_read,
+                                .write = proc_write,
+};
+</code></pre>
+</div>
+<p>我们只展示了写操作函数（因为他会产生堆溢出），完整的代码会附在结尾处，模块初始化，编译等方面本文就不做讨论了。</p>
+<div class="highlighter-rouge"><pre class="highlight"><code>static ssize_t proc_write (struct file *proc_file, const char __user *proc_user, size_t n, loff_t *loff)
+{
+    char *c = kmalloc(512, GFP_KERNEL);
+
+   copy_from_user(c, proc_user, 4096);
+    printk(DEBUG_FLAG":into write!\n");
+    return 0;
+}
+</code></pre>
+</div>
+<p>然后把模块代码放进kernel中编译即可，可以通过在制定新内核的虚机中运行如下命令验证模块是否加载：
+<code class="highlighter-rouge">ls /proc/test</code></p>
+
+<h2 id="运行syzkaller捕捉溢出">运行syzkaller捕捉溢出</h2>
+<h3 id="修改配置文件">修改配置文件</h3>
+<p>因为针对的是读写操作，在配置文件中使能这些调用做针对性测试：</p>
+<div class="highlighter-rouge"><pre class="highlight"><code>"enable_syscalls": [
+                "open$proc",
+                "read$proc",
+                "write$proc",
+                "close$proc"
+],
+</code></pre>
+</div>
+<p>运行虚机测试：
+<code class="highlighter-rouge">bin/syz-manager -config /PATH/TO/YOUR/CONFIG  -v 10</code>
+用浏览器打开127.0.0.1：50000，运行一段时间后出现以下日志：</p>
+<div class="highlighter-rouge"><pre class="highlight"><code>PROC_DEV:into open!
+==================================================================
+BUG: KASAN: slab-out-of-bounds in copy_from_user arch/x86/include/asm/uaccess.h:698 [inline] at addr ffff88003c1f5e20
+BUG: KASAN: slab-out-of-bounds in proc_write+0x64/0x90 drivers/mod_test/test.c:45 at addr ffff88003c1f5e20
+Write of size 4096 by task syz-executor0/2569
+CPU: 0 PID: 2569 Comm: syz-executor0 Not tainted 4.11.0-rc8+ #23
+Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.10.2-1 04/01/2014
+Call Trace:
+ __dump_stack lib/dump_stack.c:16 [inline]
+ dump_stack+0x95/0xe8 lib/dump_stack.c:52
+ kasan_object_err+0x1c/0x70 mm/kasan/report.c:164
+ print_address_description mm/kasan/report.c:202 [inline]
+ kasan_report_error mm/kasan/report.c:291 [inline]
+ kasan_report+0x252/0x510 mm/kasan/report.c:347
+ check_memory_region_inline mm/kasan/kasan.c:326 [inline]
+ check_memory_region+0x13c/0x1a0 mm/kasan/kasan.c:333
+ kasan_check_write+0x14/0x20 mm/kasan/kasan.c:344
+ copy_from_user arch/x86/include/asm/uaccess.h:698 [inline]
+ proc_write+0x64/0x90 drivers/mod_test/test.c:45
+ proc_reg_write+0xf6/0x180 fs/proc/inode.c:230
+ __vfs_write+0x10b/0x560 fs/read_write.c:508
+ vfs_write+0x187/0x520 fs/read_write.c:558
+ SYSC_write fs/read_write.c:605 [inline]
+ SyS_write+0xd4/0x1a0 fs/read_write.c:597
+ entry_SYSCALL_64_fastpath+0x18/0xad
+RIP: 0033:0x450a09
+RSP: 002b:00007ff6efd15b68 EFLAGS: 00000216 ORIG_RAX: 0000000000000001
+RAX: ffffffffffffffda RBX: 00000000006f8000 RCX: 0000000000450a09
+RDX: 0000000000000090 RSI: 0000000020d09000 RDI: 0000000000000005
+RBP: 0000000000000046 R08: 0000000000000000 R09: 0000000000000000
+R10: 0000000000000000 R11: 0000000000000216 R12: 0000000000000000
+R13: 00007ffc210fd8ff R14: 00007ff6efd16700 R15: 0000000000000000
+Object at ffff88003c1f5e20, in cache kmalloc-512 size: 512
+...
+Dumping ftrace buffer:
+   (ftrace buffer empty)
+Kernel Offset: disabled
+</code></pre>
+</div>
+<p>这就是内核被crash时打印出来的调用信息，我们可以看到溢出发生在proc_write+0x64/0x90 drivers/mod_test/test.c:45处，也就是我们添加进去的带有堆溢出的模块。说明我们用Syzkaller添加规则捕捉到了堆溢出的代码。</p>
+
+<ul>
+  <li>内核模块test.c和规则文件proc_operation.txt完整版在:
+https://github.com/hardenedlinux/Debian-GNU-Linux-Profiles/tree/master/docs/harbian_qa/fuzz_testing</li>
+</ul>
+
+        </section>
+    </article>
+</main>
+
+    <footer class="site-footer clearfix">
+        <section class="copyright"><a href="https://github.com/TryGhost/Casper">Ghost Foundation</a> © 2015  <a class="icon-twitter" href="https://twitter.com/embedsec"></a><a class="icon-feed" href="http://embedsec.systems/zh/feed.xml"></a></section>
+</footer>
+
+    <script src="/js/jquery.min.js"></script>
+<script type="text/javascript" src="/js/jquery.fitvids.js"></script>
+<script type="text/javascript" src="/js/index.js"></script>
+
+</body>
+</html>

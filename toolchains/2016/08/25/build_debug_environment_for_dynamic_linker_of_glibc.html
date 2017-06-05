@@ -44,7 +44,7 @@
             <h1 id="build-debug-environment-for-the-dynamic-linker-of-glibc">Build debug environment for the dynamic linker of Glibc</h1>
 <p>@(Toolchains)[Glibc|dynamic-linker|gdb|gcc]</p>
 
-<h2 id="prologue">00 Prologue</h2>
+<h2 id="00-prologue">00 Prologue</h2>
 
 <p>Recently my work need some research about the dynamic linker of Glibc, when I
 use gdb from the PLT table of executable or shared library into the Glibc source
@@ -69,7 +69,7 @@ in a general way will see this:</p>
 </div>
 <p>So, how can i overcome this?</p>
 
-<h2 id="analysis">01 Analysis</h2>
+<h2 id="01-analysis">01 Analysis</h2>
 
 <p>I can deduce must be miss debug symbol information from the assembly code of the
 top half of above list, and also miss lineno table for gdb from the output of 
@@ -95,7 +95,7 @@ no time research it in detials.</p>
 
 <p>So, must has some simple solution.</p>
 
-<h2 id="solution">02 Solution</h2>
+<h2 id="02-solution">02 Solution</h2>
 
 <p>Back to the problem itself after above analysis, I konw gdb need debug symbol
 information and debug lineno table. So download the extra bubug information of
@@ -257,7 +257,7 @@ specify the source code directory for gdb must follow this rules.</p>
 </code></pre>
 <p>Until now, you must can debug the dynamic-linker of Glibc.</p>
 
-<h2 id="epilogue">03 Epilogue</h2>
+<h2 id="03-epilogue">03 Epilogue</h2>
 
 <p>All of the content of this article described is only my persional experiment, 
 but depend on my analysis I think you can deal with your maybe special problem.</p>
