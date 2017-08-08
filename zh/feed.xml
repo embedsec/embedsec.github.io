@@ -3,8 +3,8 @@
 	<channel>
 		<title>Evil</title>
 		<description></description>		
-		<link>http://localhost:4000</link>
-		<atom:link href="http://localhost:4000/feed.xml" rel="self" type="application/rss+xml" />
+		<link>http://embedsec.systems/zh</link>
+		<atom:link href="http://embedsec.systems/zh/feed.xml" rel="self" type="application/rss+xml" />
 		
 			<item>
 				<title>Coreboot for HiFive</title>
@@ -15,8 +15,8 @@
 </description>
 				
 				<pubDate>Mon, 05 Jun 2017 00:00:00 +0800</pubDate>
-				<link>http://localhost:4000/coreboot/2017/06/05/coreboot-4-hifive.html</link>
-				<guid isPermaLink="true">http://localhost:4000/coreboot/2017/06/05/coreboot-4-hifive.html</guid>
+				<link>http://embedsec.systems/zh/coreboot/2017/06/05/coreboot-4-hifive.html</link>
+				<guid isPermaLink="true">http://embedsec.systems/zh/coreboot/2017/06/05/coreboot-4-hifive.html</guid>
 			</item>
 		
 			<item>
@@ -28,8 +28,8 @@
 </description>
 				
 				<pubDate>Mon, 05 Jun 2017 00:00:00 +0800</pubDate>
-				<link>http://localhost:4000/gnulinux-security/2017/06/05/syzkaller.html</link>
-				<guid isPermaLink="true">http://localhost:4000/gnulinux-security/2017/06/05/syzkaller.html</guid>
+				<link>http://embedsec.systems/zh/gnulinux-security/2017/06/05/syzkaller.html</link>
+				<guid isPermaLink="true">http://embedsec.systems/zh/gnulinux-security/2017/06/05/syzkaller.html</guid>
 			</item>
 		
 			<item>
@@ -41,8 +41,8 @@
 </description>
 				
 				<pubDate>Mon, 05 Jun 2017 00:00:00 +0800</pubDate>
-				<link>http://localhost:4000/gnulinux-security/2017/06/05/syzkaller-demo.html</link>
-				<guid isPermaLink="true">http://localhost:4000/gnulinux-security/2017/06/05/syzkaller-demo.html</guid>
+				<link>http://embedsec.systems/zh/gnulinux-security/2017/06/05/syzkaller-demo.html</link>
+				<guid isPermaLink="true">http://embedsec.systems/zh/gnulinux-security/2017/06/05/syzkaller-demo.html</guid>
 			</item>
 		
 			<item>
@@ -56,8 +56,8 @@
 </description>
 				
 				<pubDate>Sun, 27 Nov 2016 00:00:00 +0800</pubDate>
-				<link>http://localhost:4000/2016/11/27/canary-analysis.html</link>
-				<guid isPermaLink="true">http://localhost:4000/2016/11/27/canary-analysis.html</guid>
+				<link>http://embedsec.systems/zh/2016/11/27/canary-analysis.html</link>
+				<guid isPermaLink="true">http://embedsec.systems/zh/2016/11/27/canary-analysis.html</guid>
 			</item>
 		
 			<item>
@@ -71,8 +71,8 @@
 </description>
 				
 				<pubDate>Fri, 25 Nov 2016 00:00:00 +0800</pubDate>
-				<link>http://localhost:4000/2016/11/25/RelRO-analysis.html</link>
-				<guid isPermaLink="true">http://localhost:4000/2016/11/25/RelRO-analysis.html</guid>
+				<link>http://embedsec.systems/zh/2016/11/25/RelRO-analysis.html</link>
+				<guid isPermaLink="true">http://embedsec.systems/zh/2016/11/25/RelRO-analysis.html</guid>
 			</item>
 		
 			<item>
@@ -86,8 +86,8 @@
 </description>
 				
 				<pubDate>Wed, 21 Sep 2016 00:00:00 +0800</pubDate>
-				<link>http://localhost:4000/gnu/linux-security/2016/09/21/linker-shared-library-wrinkle.html</link>
-				<guid isPermaLink="true">http://localhost:4000/gnu/linux-security/2016/09/21/linker-shared-library-wrinkle.html</guid>
+				<link>http://embedsec.systems/zh/gnu/linux-security/2016/09/21/linker-shared-library-wrinkle.html</link>
+				<guid isPermaLink="true">http://embedsec.systems/zh/gnu/linux-security/2016/09/21/linker-shared-library-wrinkle.html</guid>
 			</item>
 		
 			<item>
@@ -100,8 +100,8 @@
 </description>
 				
 				<pubDate>Thu, 30 Jun 2016 00:00:00 +0800</pubDate>
-				<link>http://localhost:4000/gnulinux-security/2016/06/30/PIC-and-PIE-analysis.html</link>
-				<guid isPermaLink="true">http://localhost:4000/gnulinux-security/2016/06/30/PIC-and-PIE-analysis.html</guid>
+				<link>http://embedsec.systems/zh/gnulinux-security/2016/06/30/PIC-and-PIE-analysis.html</link>
+				<guid isPermaLink="true">http://embedsec.systems/zh/gnulinux-security/2016/06/30/PIC-and-PIE-analysis.html</guid>
 			</item>
 		
 			<item>
@@ -113,8 +113,8 @@
 </description>
 				
 				<pubDate>Tue, 31 May 2016 00:00:00 +0800</pubDate>
-				<link>http://localhost:4000/gnulinux-security/2016/05/31/NX-No-eXecute-%E7%9A%84%E5%AE%9E%E7%8E%B0%E5%88%86%E6%9E%90.html</link>
-				<guid isPermaLink="true">http://localhost:4000/gnulinux-security/2016/05/31/NX-No-eXecute-%E7%9A%84%E5%AE%9E%E7%8E%B0%E5%88%86%E6%9E%90.html</guid>
+				<link>http://embedsec.systems/zh/gnulinux-security/2016/05/31/NX-No-eXecute-%E7%9A%84%E5%AE%9E%E7%8E%B0%E5%88%86%E6%9E%90.html</link>
+				<guid isPermaLink="true">http://embedsec.systems/zh/gnulinux-security/2016/05/31/NX-No-eXecute-%E7%9A%84%E5%AE%9E%E7%8E%B0%E5%88%86%E6%9E%90.html</guid>
 			</item>
 		
 			<item>
@@ -126,8 +126,8 @@
 </description>
 				
 				<pubDate>Tue, 03 Mar 2015 00:00:00 +0800</pubDate>
-				<link>http://localhost:4000/%E5%B5%8C%E5%85%A5%E5%BC%8F%E8%AE%BE%E5%A4%87%E5%AE%89%E5%85%A8/2015/03/03/%E7%94%A8Misfortune-Cookie%E7%BB%99ROM-0Bug%E6%89%93%E8%A1%A5%E4%B8%81.html</link>
-				<guid isPermaLink="true">http://localhost:4000/%E5%B5%8C%E5%85%A5%E5%BC%8F%E8%AE%BE%E5%A4%87%E5%AE%89%E5%85%A8/2015/03/03/%E7%94%A8Misfortune-Cookie%E7%BB%99ROM-0Bug%E6%89%93%E8%A1%A5%E4%B8%81.html</guid>
+				<link>http://embedsec.systems/zh/%E5%B5%8C%E5%85%A5%E5%BC%8F%E8%AE%BE%E5%A4%87%E5%AE%89%E5%85%A8/2015/03/03/%E7%94%A8Misfortune-Cookie%E7%BB%99ROM-0Bug%E6%89%93%E8%A1%A5%E4%B8%81.html</link>
+				<guid isPermaLink="true">http://embedsec.systems/zh/%E5%B5%8C%E5%85%A5%E5%BC%8F%E8%AE%BE%E5%A4%87%E5%AE%89%E5%85%A8/2015/03/03/%E7%94%A8Misfortune-Cookie%E7%BB%99ROM-0Bug%E6%89%93%E8%A1%A5%E4%B8%81.html</guid>
 			</item>
 		
 			<item>
@@ -139,8 +139,8 @@
 </description>
 				
 				<pubDate>Mon, 16 Feb 2015 00:00:00 +0800</pubDate>
-				<link>http://localhost:4000/%E5%B5%8C%E5%85%A5%E5%BC%8F%E8%AE%BE%E5%A4%87%E5%AE%89%E5%85%A8/2015/02/16/Misfortune-Cookie-CVE-2014-9222-%E8%A7%A3%E5%AF%86.html</link>
-				<guid isPermaLink="true">http://localhost:4000/%E5%B5%8C%E5%85%A5%E5%BC%8F%E8%AE%BE%E5%A4%87%E5%AE%89%E5%85%A8/2015/02/16/Misfortune-Cookie-CVE-2014-9222-%E8%A7%A3%E5%AF%86.html</guid>
+				<link>http://embedsec.systems/zh/%E5%B5%8C%E5%85%A5%E5%BC%8F%E8%AE%BE%E5%A4%87%E5%AE%89%E5%85%A8/2015/02/16/Misfortune-Cookie-CVE-2014-9222-%E8%A7%A3%E5%AF%86.html</link>
+				<guid isPermaLink="true">http://embedsec.systems/zh/%E5%B5%8C%E5%85%A5%E5%BC%8F%E8%AE%BE%E5%A4%87%E5%AE%89%E5%85%A8/2015/02/16/Misfortune-Cookie-CVE-2014-9222-%E8%A7%A3%E5%AF%86.html</guid>
 			</item>
 		
 	</channel>
