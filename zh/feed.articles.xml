@@ -8,6 +8,22 @@
 		
 			
 			<item>
+				<title>ARMv8.3-A PA在GCC里的相关实现</title>
+				
+					<description>&lt;h1 id=&quot;armv83-a-pa在gcc里的相关实现&quot;&gt;ARMv8.3-A PA在GCC里的相关实现&lt;/h1&gt;
+&lt;p&gt;@(GCC)[GNU System-Security]
+        –&lt;a href=&quot;https://github.com/fanfuqiang&quot;&gt;zet&lt;/a&gt;&lt;/p&gt;
+
+</description>
+				
+				<pubDate>Tue, 13 Jun 2017 00:00:00 +0800</pubDate>
+				<link>http://embedsec.systems/zh/gnu-toolchains-security/2017/06/13/ARM_PA.html</link>
+				<guid isPermaLink="true">http://embedsec.systems/zh/gnu-toolchains-security/2017/06/13/ARM_PA.html</guid>
+			</item>
+			
+		
+			
+			<item>
 				<title>Coreboot for HiFive</title>
 				
 					<description>&lt;h1 id=&quot;coreboot-for-hifive&quot;&gt;Coreboot for HiFive&lt;/h1&gt;
